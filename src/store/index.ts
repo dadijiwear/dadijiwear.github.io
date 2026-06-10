@@ -59,9 +59,9 @@ interface StoreState {
 
   hydrateAuth: () => Promise<void>;
   refreshCart: () => Promise<void>;
-  addToCart: (product: Product, size?: string, quantity?: number) => Promise<{ success: boolean; message: string }>;
+  addToCart: (product: Product, size?: string, quantity?: number, color?: string) => Promise<{ success: boolean; message: string }>;
   removeFromCart: (cartItemId: string) => Promise<void>;
-  updateCartQuantity: (cartItemId: string, quantity: number) => Promise<void>;
+  updateCartQuantity: (cartItemId: string, quantity: number) => Promise<{ success: boolean; message: string }>;
   clearCart: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -191,7 +191,7 @@ export const useStore = create<StoreState>((set, get) => ({
     }
   },
 
-  addToCart: async (product, size, quantity = 1) => {
+  addToCart: async (product, size, quantity = 1, color) => {
     const state = get();
 
     if (!state.authReady) {
@@ -213,6 +213,7 @@ export const useStore = create<StoreState>((set, get) => ({
         body: JSON.stringify({
           productId: product.id,
           size,
+          color,
           quantity,
         }),
       });
@@ -239,7 +240,6 @@ export const useStore = create<StoreState>((set, get) => ({
 
   removeFromCart: async (cartItemId) => {
     set({ bagLoading: true });
-
     try {
       const res = await fetch(`/api/cart/${cartItemId}`, {
         method: "DELETE",
@@ -251,31 +251,10 @@ export const useStore = create<StoreState>((set, get) => ({
         throw new Error(payload?.error || "Failed to remove item");
       }
 
-      await get().refreshCart();
-    } finally {
-      set({ bagLoading: false });
-    }
-  },
+      const items = Array.isArray(payload?.cart?.items)
+        ? payload.cart.items.map(mapApiItem)
+        : [];
 
-  updateCartQuantity: async (cartItemId, quantity) => {
-    set({ bagLoading: true });
-
-    try {
-      const res = await fetch(`/api/cart/${cartItemId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ quantity }),
-      });
-
-      const payload = await res.json();
-
-      if (!res.ok) {
-        throw new Error(payload?.error || "Failed to update quantity");
-      }
-
-      const items = Array.isArray(payload?.cart?.items) ? payload.cart.items.map(mapApiItem) : [];
       set({
         cart: items,
         bagCount: sumBagCount(items),
@@ -284,8 +263,41 @@ export const useStore = create<StoreState>((set, get) => ({
     } catch {
       set({ bagLoading: false });
     }
-  },
+  }, 
+  
+  updateCartQuantity: async (cartItemId, quantity) => {
+  set((state) => {
+    const items = state.cart.map((item) =>
+      item.id === cartItemId ? { ...item, quantity } : item
+    );
+    return { cart: items, bagCount: sumBagCount(items) };
+  });
 
+  try {
+    const res = await fetch(`/api/cart/${cartItemId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quantity }),
+    });
+
+    const payload = await res.json();
+
+    if (!res.ok) {
+      await get().refreshCart(); // restore correct db store
+      return { success: false, message: payload?.error || "Failed to update quantity" };
+    }
+
+    const items = Array.isArray(payload?.cart?.items)
+      ? payload.cart.items.map(mapApiItem)
+      : [];
+      set({ cart: items, bagCount: sumBagCount(items) });
+      return { success: true, message: "Updated" };
+      } catch {
+      await get().refreshCart();
+      return { success: false, message: "Failed to update quantity" };
+    }
+  },  
+  
   clearCart: async () => {
     set({ bagLoading: true });
 

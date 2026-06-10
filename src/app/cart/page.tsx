@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Lock, Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useStore } from "@/store";
 
 export default function CartPage() {
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!actionError) return;
+    const t = setTimeout(() => setActionError(null), 3000);
+      return () => clearTimeout(t);
+  }, [actionError]);
+
   const {
     cart,
     currentUser,
@@ -21,13 +29,13 @@ export default function CartPage() {
   useEffect(() => {
     void hydrateAuth();
   }, [hydrateAuth]);
-
+  {/*
   useEffect(() => {
     if (authReady && currentUser) {
       void refreshCart();
     }
-  }, [authReady, currentUser, refreshCart]);
-
+  }, [authReady, currentUser, refreshCart]); */}
+  
   const total = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   if (!authReady || bagLoading) {
@@ -48,7 +56,14 @@ export default function CartPage() {
             </div>
           </div>
           <h1 className="text-3xl font-serif text-dadi-green-dark mb-3">Your Bag</h1>
-          <p className="text-muted-custom mb-6">Please sign in to view and manage your bag.</p>
+          
+          {actionError && (
+          <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium">
+            ⚠ {actionError}
+          </div>
+          )}
+          
+        <p className="text-muted-custom mb-6">Please sign in to view and manage your bag.</p>
           <Link href="/account">
             <Button variant="primary">Sign In</Button>
           </Link>
@@ -98,19 +113,25 @@ export default function CartPage() {
                 <div className="mt-4 flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => updateCartQuantity(item.id, Math.max(1, item.quantity - 1))}
+                    onClick={async () => {
+                      const result = await updateCartQuantity(item.id, Math.max(1, item.quantity - 1));
+                        if (!result.success) setActionError(result.message);
+                      }}
                     className="w-9 h-9 rounded-full border border-border-custom flex items-center justify-center"
-                  >
+                    >
                     <Minus size={16} />
                   </button>
                   <span className="min-w-8 text-center text-sm font-medium">{item.quantity}</span>
-                  <button
-                    type="button"
-                    onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
-                    className="w-9 h-9 rounded-full border border-border-custom flex items-center justify-center"
-                  >
-                    <Plus size={16} />
-                  </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const result = await updateCartQuantity(item.id, item.quantity + 1);
+                    if (!result.success) setActionError(result.message);
+                  }}
+                  className="w-9 h-9 rounded-full border border-border-custom flex items-center justify-center"
+                >
+                  <Plus size={16} />
+                </button>
                 </div>
               </div>
 

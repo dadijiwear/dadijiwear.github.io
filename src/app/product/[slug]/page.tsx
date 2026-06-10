@@ -32,6 +32,7 @@ export default function ProductDetailPage() {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [sizeError, setSizeError] = useState(false);
+  const [cartMessage, setCartMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -103,13 +104,13 @@ export default function ProductDetailPage() {
     ? product.reviews.reduce((acc: number, review: any) => acc + (review.rating || 5), 0) / reviewCount 
     : 0;
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (sizes.length && !selectedSize) {
       setSizeError(true);
       return;
     }
-
     setSizeError(false);
+    setCartMessage(null);
 
     const storeProduct = {
       ...product,
@@ -117,20 +118,46 @@ export default function ProductDetailPage() {
       image: images[0],
     };
 
-    for (let i = 0; i < quantity; i++) {
-      addToCart(storeProduct, selectedSize || undefined);
+  const result = await addToCart(storeProduct, selectedSize || undefined, quantity, selectedColor || undefined);
+
+    if (result.success) {
+      setCartMessage({ type: "success", text: "Added to your bag!" });
+      setTimeout(() => setCartMessage(null), 3000);
+    } else {
+      setCartMessage({ type: "error", text: result.message });
     }
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (sizes.length && !selectedSize) {
       setSizeError(true);
       return;
     }
-    
-    handleAddToCart();
-    router.push("/cart");
+    await handleAddToCart();
+    // navvigation only if success
+    const currentMessage = cartMessage; // capture before nav.
+    if (!currentMessage || currentMessage.type !== "error") {
+      router.push("/cart");
+    }
   };
+
+  const getVariantStock = (size: string, color?: string | null): number => {
+  return product.variants
+    ?.filter((v: any) => {
+      const sizeMatch = v.ageGroup === size;
+      const colorMatch = color
+        ? v.color?.trim().toLowerCase() === color.trim().toLowerCase()
+        : true;
+      return sizeMatch && colorMatch;
+    })
+    .reduce((acc: number, v: any) => acc + (v.stock || 0), 0) || 0;
+  };
+
+  const currentSelectionStock = selectedSize
+    ? getVariantStock(selectedSize, selectedColor)
+    : null;
+
+  const isOutOfStock = currentSelectionStock !== null && currentSelectionStock === 0;
 
   return (
     <div className="bg-dadi-cream min-h-screen">
@@ -286,30 +313,38 @@ export default function ProductDetailPage() {
 
                   <div className="flex flex-wrap gap-2">
                     {sizes.map((size: any) => {
-                      const stockCount = product.variants
-                        ?.filter((v: any) => v.ageGroup === size)
-                        .reduce((acc: number, v: any) => acc + (v.stock || 0), 0) || 0;
+                      const stockCount = getVariantStock(size as string, selectedColor);
+                      const isSoldOut = selectedColor ? stockCount === 0 : false;
 
                       return (
                         <button
                           key={size as string}
                           onClick={() => {
+                            if (isSoldOut) return;
                             setSelectedSize(size as string);
                             setSizeError(false);
                           }}
+                          disabled={isSoldOut}
                           className={`px-4 py-2 rounded-xl border-2 text-sm font-semibold transition-all flex flex-col items-center min-w-[80px] ${
                             selectedSize === size
                               ? "border-dadi-green bg-dadi-green text-white dark:border-dadi-gold dark:bg-dadi-gold dark:text-dadi-green shadow-md"
+                              : isSoldOut
+                              ? "border-border-custom text-muted-custom opacity-40 cursor-not-allowed"
                               : "border-border-custom text-foreground hover:border-dadi-green dark:hover:border-dadi-gold"
                           }`}
                         >
                           <span>{size as string}</span>
-                          <span className={`text-[10px] font-medium mt-0.5 ${selectedSize === size ? "text-white/80 dark:text-dadi-green/80" : "text-muted-custom"}`}>
-                            {stockCount} left
+                          <span className={`text-[10px] font-medium mt-0.5 ${
+                            selectedSize === size ? "text-white/80 dark:text-dadi-green/80"
+                            : isSoldOut ? "text-red-400"
+                            : "text-muted-custom"
+                          }`}>
+                            {isSoldOut ? "sold out" : `${stockCount} left`}
                           </span>
                         </button>
                       );
                     })}
+                      
                   </div>
 
                   {selectedSize && (
@@ -387,24 +422,38 @@ export default function ProductDetailPage() {
                   </button>
                 </div>
               </div>
+              
+              {cartMessage && (
+                <p className={`text-sm font-medium mb-3 ${
+                  cartMessage.type === "error" ? "text-red-500" : "text-dadi-green dark:text-dadi-gold"
+                  }`}>
+                  {cartMessage.type === "error" ? "⚠ " : "✓ "}{cartMessage.text}
+                </p>
+              )}
 
               <div className="flex flex-col sm:flex-row gap-3 mb-8">
                 <Button
                   onClick={handleAddToCart}
                   variant="outline"
-                  className="flex-1 py-3 text-base rounded-xl gap-2 font-semibold"
-                >
+                  disabled={isOutOfStock}
+                  className={`flex-1 py-3 text-base rounded-xl gap-2 font-semibold ${
+                  isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  >
                   <ShoppingBag size={20} />
-                  Add to bag
+                  {isOutOfStock ? "Out of Stock" : "Add to bag"}
                 </Button>
 
                 <Button
                   onClick={handleBuyNow}
                   variant="primary"
-                  className="flex-1 py-3 text-base rounded-xl gap-2 font-semibold"
-                >
+                  disabled={isOutOfStock}
+                  className={`flex-1 py-3 text-base rounded-xl gap-2 font-semibold ${
+                  isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                  >
                   <Zap size={20} />
-                  Buy Now
+                  {isOutOfStock ? "Out of Stock" : "Buy Now"}
                 </Button>
               </div>
 
