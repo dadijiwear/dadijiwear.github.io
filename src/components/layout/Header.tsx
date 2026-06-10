@@ -104,6 +104,29 @@ export default function Header() {
           <span className="font-serif block">Mom &amp; Son</span>
         </Link>
 
+        <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
+          <Link href="/" 
+            className="relative pb-1 text-dadi-cream transition-colors duration-600 hover:text-dadi-gold after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:bg-dadi-gold after:scale-x-0 after:origin-right after:transition-transform after:duration-600 hover:after:scale-x-100 hover:after:origin-left"
+            > Home
+          </Link>
+
+          <Link href="/shop" 
+            className="relative pb-1 text-dadi-cream transition-colors duration-600 hover:text-dadi-gold after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:bg-dadi-gold after:scale-x-0 after:origin-right after:transition-transform after:duration-600 hover:after:scale-x-100 hover:after:origin-left"
+            > Shop
+          </Link>
+  
+          <Link href="/about" 
+            className="relative pb-1 text-dadi-cream transition-colors duration-600 hover:text-dadi-gold after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:bg-dadi-gold after:scale-x-0 after:origin-right after:transition-transform after:duration-600 hover:after:scale-x-100 hover:after:origin-left"
+            > About Us
+          </Link>
+          <Link 
+            href="/contact" 
+            className="relative pb-1 text-dadi-cream transition-colors duration-600 hover:text-dadi-gold after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:bg-dadi-gold after:scale-x-0 after:origin-right after:transition-transform after:duration-600 hover:after:scale-x-100 hover:after:origin-left"
+          > Contact
+          </Link>
+        
+        </nav>
+
         
         <div className="flex items-center gap-3">
           <a href="https://instagram.com" target="_blank" rel="noreferrer" className="hidden text-dadi-cream transition hover:text-dadi-gold sm:block">
