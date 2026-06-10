@@ -91,8 +91,6 @@ export default function Home() {
 
         <WavyDivider 
           className="absolute bottom-0 left-0 z-40" 
-          colorClass="text-dadi-cream dark:text-neutral-950"
-          layerColorClass="text-dadi-gold/15 dark:text-dadi-gold/5"
         />
       </section>
 

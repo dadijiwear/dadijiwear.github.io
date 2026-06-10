@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/Button";
 import {
@@ -96,10 +96,15 @@ function deviceLabel() {
 
 export default function AccountPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const supabase = createClient();
 
-  const resetMode = searchParams.get("mode") === "reset";
+  const [resetMode, setResetMode] = useState(false);
+
+useEffect(() => {
+    setResetMode(
+      new URLSearchParams(window.location.search).get("mode") === "reset"
+    );
+  }, []);
 
   const [view, setView] = useState<AuthView>(resetMode ? "RESET" : "LOGIN");
   const [pageLoading, setPageLoading] = useState(true);
