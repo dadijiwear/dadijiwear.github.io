@@ -98,19 +98,13 @@ export default function Header() {
       <div className="container mx-auto flex items-center justify-between px-4 md:px-8">
         
         <Link href="/" className="group flex items-center gap-2 text-2xl font-serif tracking-wide text-dadi-cream transition hover:text-dadi-gold">
-          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-dadi-gold bg-dadi-cream text-xl font-bold text-dadi-green shadow-sm transition-transform group-hover:scale-105">
+          <div className="hidden sm:flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-dadi-gold bg-dadi-cream text-xl font-bold text-dadi-green shadow-sm transition-transform group-hover:scale-105">
             <span>{isUserLoggedIn && firstName ? firstName[0].toUpperCase() : "Y"}</span>
           </div>
-          <span className="hidden font-serif sm:block">Mom &amp; Son</span>
+          <span className="font-serif block">Mom &amp; Son</span>
         </Link>
 
-        <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
-          <Link href="/" className="text-dadi-cream transition hover:text-dadi-gold">Home</Link>
-          <Link href="/shop" className="text-dadi-cream transition hover:text-dadi-gold">Shop</Link>
-          <Link href="/about" className="text-dadi-cream transition hover:text-dadi-gold">About Us</Link>
-          <Link href="/contact" className="text-dadi-cream transition hover:text-dadi-gold">Contact</Link>
-        </nav>
-
+        
         <div className="flex items-center gap-3">
           <a href="https://instagram.com" target="_blank" rel="noreferrer" className="hidden text-dadi-cream transition hover:text-dadi-gold sm:block">
             <Image src="/assets/instagram.png" alt="Instagram" width={30} height={30} />
@@ -189,24 +183,28 @@ export default function Header() {
               Account
             </Link>
           )}
-
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="rounded-lg p-2 text-dadi-cream transition hover:bg-white/10 md:hidden"
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="relative h-10 w-10 rounded-lg text-dadi-cream transition hover:bg-white/10 md:hidden"
+              aria-label="Toggle Menu"
+            >
+            <div className="absolute left-1/2 top-1/2 w-6 -translate-x-1/2 -translate-y-1/2 space-y-1.5">
+              <span className={`block h-0.5 w-6 rounded bg-current transition-all duration-300 ${mobileMenuOpen ? "rotate-45 translate-y-2" : ""}`} />
+              <span className={`block h-0.5 w-6 rounded bg-current transition-all duration-300 ${mobileMenuOpen ? "scale-0 opacity-0" : ""}`} />
+              <span className={`block h-0.5 w-6 rounded bg-current transition-all duration-300 ${mobileMenuOpen ? "-rotate-45 -translate-y-2" : ""}`} />
+            </div>
+          </button>        
         </div>
       </div>
 
       {mobileMenuOpen && (
-        <div className="border-t border-white/10 bg-dadi-green-dark/95 backdrop-blur-md md:hidden">
-          <nav className="flex flex-col gap-3 px-6 py-4 text-sm font-medium text-dadi-cream">
-            <Link href="/" className="py-2 transition hover:text-dadi-gold" onClick={() => setMobileMenuOpen(false)}>Home</Link>
-            <Link href="/shop" className="py-2 transition hover:text-dadi-gold" onClick={() => setMobileMenuOpen(false)}>Shop</Link>
-            <Link href="/about" className="py-2 transition hover:text-dadi-gold" onClick={() => setMobileMenuOpen(false)}>About Us</Link>
-            <Link href="/contact" className="py-2 transition hover:text-dadi-gold" onClick={() => setMobileMenuOpen(false)}>Contact</Link>
-            <Link href="/account" className="py-2 text-left transition hover:text-dadi-gold" onClick={() => setMobileMenuOpen(false)}>
+        <div className={`absolute right-4 top-[calc(100%+8px)] z-50 w-56 origin-top-right rounded-xl border border-dadi-gold/50 bg-dadi-green-dark/50 p-3 backdrop-blur-xl shadow-xl transition-all duration-300 md:hidden ${mobileMenuOpen ? "scale-100 opacity-100 visible" : "scale-95 opacity-0 invisible pointer-events-none"}`}>
+          <nav className="flex flex-col gap-1 text-sm font-medium text-dadi-cream">
+            <Link href="/" className="rounded-lg px-3 py-2 transition hover:bg-white/10 hover:text-dadi-gold" onClick={() => setMobileMenuOpen(false)}>Home</Link>
+            <Link href="/shop" className="rounded-lg px-3 py-2 transition hover:bg-white/10 hover:text-dadi-gold" onClick={() => setMobileMenuOpen(false)}>Shop</Link>
+            <Link href="/about" className="rounded-lg px-3 py-2 transition hover:bg-white/10 hover:text-dadi-gold" onClick={() => setMobileMenuOpen(false)}>About Us</Link>
+            <Link href="/contact" className="rounded-lg px-3 py-2 transition hover:bg-white/10 hover:text-dadi-gold" onClick={() => setMobileMenuOpen(false)}>Contact</Link>
+            <Link href="/account" className="rounded-lg px-3 py-2 text-left transition hover:bg-white/10 hover:text-dadi-gold" onClick={() => setMobileMenuOpen(false)}>
               {isUserLoggedIn ? firstName : "Login / Sign Up"}
             </Link>
           </nav>

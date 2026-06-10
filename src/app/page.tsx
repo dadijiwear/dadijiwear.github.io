@@ -69,7 +69,7 @@ export default function Home() {
 
           </div>
 
-          <div className="w-full md:w-1/2 relative">
+          <div className="w-full md:w-1/2 relative h-[350px] md:h-auto">
 
             <div className="absolute inset-y-0 -left-20 w-40 bg-linear-to-r from-dadi-green via-dadi-green/80 to-transparent z-20 md:block hidden blur-xl"></div>
             <div className="absolute inset-y-0 -left-5 w-10 bg-dadi-green z-20 md:block hidden"></div>

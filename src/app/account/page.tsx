@@ -573,6 +573,22 @@ useEffect(() => {
 
     setAuthBusy(true);
 
+    try {
+      const checkRes = await fetch(`/api/profile?checkEmail=${encodeURIComponent(email.trim())}`);
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        if (!checkData.exists) {
+          setError("Email not registered.");
+          setAuthBusy(false);
+          return;
+        }
+      }
+    } catch {
+      setError("Validation system failure. Please try again.");
+      setAuthBusy(false);
+      return;
+    }
+
     const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/account?mode=reset` : undefined;
 
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
@@ -586,7 +602,7 @@ useEffect(() => {
       return;
     }
 
-    setMessage("Link sent. Plese use that link to login to your account and please update password and save it.");
+    setMessage("Link sent. Check inbox/spam, use that link to login to your account and don't forget to update password and save it.");
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
