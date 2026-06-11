@@ -687,7 +687,7 @@ useEffect(() => {
   if (pageLoading) {
     return (
       <div className="min-h-screen bg-[#fcfbf7] flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-4 border-emerald-100 border-t-[#c5a880] animate-spin" />
+        <div className="w-10 h-10 rounded-full border-4 border-emerald-100 border-t-[#0a3423] animate-spin" />
       </div>
     );
   }

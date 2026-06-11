@@ -40,8 +40,12 @@ export default function CartPage() {
 
   if (!authReady || bagLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-sm text-muted-custom">Loading your bag...</div>
+      <div className="min-h-screen bg-[#fcfbf7] flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full border-4 border-emerald-100 border-t-[#0a3423] animate-spin" />
+      
+        <div className="min-h-screen flex items-center justify-center">
+        <div className="text-sm text-muted-custom"> Loading your bag...</div>
+      </div>
       </div>
     );
   }

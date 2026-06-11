@@ -104,10 +104,10 @@ export default function ProductDetailPage() {
     ? product.reviews.reduce((acc: number, review: any) => acc + (review.rating || 5), 0) / reviewCount 
     : 0;
 
-  const handleAddToCart = async () => {
+  const handleAddToCart = async (): Promise<boolean> => {
     if (sizes.length && !selectedSize) {
       setSizeError(true);
-      return;
+      return false;
     }
     setSizeError(false);
     setCartMessage(null);
@@ -144,14 +144,20 @@ export default function ProductDetailPage() {
   };
 
   const handleBuyNow = async () => {
-    if (sizes.length && !selectedSize) {
+    /* if (sizes.length && !selectedSize) {
       setSizeError(true);
       return;
-    }
+    } 
     await handleAddToCart();
     // navvigation only if success
     const currentMessage = cartMessage; // capture before nav.
     if (!currentMessage || currentMessage.type !== "error") {
+      router.push("/cart");
+    } */
+
+
+    const success = await handleAddToCart();
+    if (success) {
       router.push("/cart");
     }
   };
