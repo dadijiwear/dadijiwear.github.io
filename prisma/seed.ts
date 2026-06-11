@@ -277,6 +277,20 @@ async function main() {
     pid2: pid2.pid,
     pid3: pid3.pid,
   });
+
+  await prisma.coupon.upsert({
+    where: { code: "NEWBORN06" },
+    update: {},
+    create: {
+      code: "NEWBORN06",
+      name: "Newborn Welcome Offer",
+      type: "PERCENTAGE",
+      value: 10,
+      minOrderAmount: 0,
+      maxDiscountAmount: 100,
+      active: true,
+    },
+  });
 }
 
 main()

@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Inter } from "next/font/google";
+import { Playfair_Display, Inter, Lexend } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { BackgroundDecorations } from "@/components/layout/BackgroundDecorations";
+import ConditionalLayout from "@/components/layout/ConditionalLayout";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
 });
 
-const inter = Inter({
-  variable: "--font-inter",
+const lexend = Lexend({
+  variable: "--font-lexend",
   subsets: ["latin"],
 });
 
@@ -71,6 +72,7 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({
+
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -78,7 +80,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${playfair.variable} ${inter.variable} antialiased h-full`}
+      className={`${playfair.variable} ${lexend.variable} antialiased h-full`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans bg-dadi-cream text-foreground relative transition-colors duration-300">
@@ -88,11 +90,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         > 
-          <Header />
-          <main className="flex-1 relative z-10">
+          <ConditionalLayout>
             {children}
-          </main>
-          <Footer />
+          </ConditionalLayout>
           <BackgroundDecorations />
         </ThemeProvider> 
       </body>

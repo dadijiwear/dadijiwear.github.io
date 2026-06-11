@@ -5,13 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useStore } from "@/store";
-
-type CheckoutForm = {
-  fullName: string;
-  email: string;
-  phone: string;
-  shippingAddress: string;
-};
+import { MapPin, Mail, Phone, User, Tag, X, Loader2, Wallet, CreditCard, ShieldCheck } from "lucide-react";
 
 declare global {
   interface Window {
@@ -49,17 +43,22 @@ export default function CheckoutPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState<CheckoutForm>({
-    fullName: "",
-    email: "",
-    phone: "",
-    shippingAddress: "",
-  });
+  const [shippingAddress, setShippingAddress] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "cod">("razorpay");
 
-  const total = useMemo(
+  const [couponInput, setCouponInput] = useState("");
+  const [couponCode, setCouponCode] = useState<string | null>(null);
+  const [discount, setDiscount] = useState(0);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState("");
+  const [couponSuccess, setCouponSuccess] = useState("");
+
+  const subtotal = useMemo(
     () => cart.reduce((acc, item) => acc + item.price * item.quantity, 0),
     [cart]
   );
+
+  const total = Math.max(0, subtotal - discount);
 
   useEffect(() => {
     void hydrateAuth();
@@ -72,23 +71,54 @@ export default function CheckoutPage() {
   }, [authReady, currentUser, refreshCart]);
 
   useEffect(() => {
-    if (!currentUser) return;
-
-    setForm((prev) => ({
-      ...prev,
-      fullName: currentUser.name || prev.fullName,
-      email: currentUser.email || prev.email,
-      phone: currentUser.phone || prev.phone,
-      shippingAddress: currentUser.address || prev.shippingAddress,
-    }));
+    if (currentUser?.address) {
+      setShippingAddress(currentUser.address);
+    }
   }, [currentUser]);
 
-  const handleChange = (field: keyof CheckoutForm, value: string) => {
-    setError("");
-    setForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) return;
+    setCouponLoading(true);
+    setCouponError("");
+    setCouponSuccess("");
+
+    try {
+      const res = await fetch("/api/checkout/apply-coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponInput.trim() }),
+      });
+
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(json?.error || "Failed to apply coupon");
+      }
+
+      setCouponCode(json.couponCode);
+      setDiscount(json.discountAmount);
+      setCouponSuccess(`Coupon ${json.couponCode} applied`);
+    } catch (err: any) {
+      setCouponCode(null);
+      setDiscount(0);
+      setCouponError(err?.message || "Failed to apply coupon");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = async () => {
+    setCouponLoading(true);
+    try {
+      await fetch("/api/checkout/apply-coupon", { method: "DELETE" });
+    } finally {
+      setCouponCode(null);
+      setDiscount(0);
+      setCouponInput("");
+      setCouponError("");
+      setCouponSuccess("");
+      setCouponLoading(false);
+    }
   };
 
   const openRazorpay = async () => {
@@ -107,10 +137,8 @@ export default function CheckoutPage() {
 
     const prepareRes = await fetch("/api/checkout/create-order", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(form),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shippingAddress }),
     });
 
     const prepareJson = await prepareRes.json().catch(() => null);
@@ -131,9 +159,9 @@ export default function CheckoutPage() {
       description: `Order ${prepareJson.orderNumber}`,
       order_id: prepareJson.razorpayOrderId,
       prefill: {
-        name: form.fullName,
-        email: form.email,
-        contact: form.phone,
+        name: currentUser?.name || "",
+        email: currentUser?.email || "",
+        contact: currentUser?.phone || "",
       },
       theme: {
         color: "#0f5f46",
@@ -141,15 +169,21 @@ export default function CheckoutPage() {
       modal: {
         ondismiss: () => {
           setLoading(false);
+          fetch("/api/checkout/cancel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              orderId: prepareJson.orderId,
+              reason: "Payment cancelled by user",
+            }),
+          }).catch(() => {});
         },
       },
       handler: async (response: any) => {
         try {
           const verifyRes = await fetch("/api/checkout/verify", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               orderId: prepareJson.orderId,
               razorpayOrderId: response.razorpay_order_id,
@@ -178,14 +212,24 @@ export default function CheckoutPage() {
     const razorpay = new window.Razorpay(options);
 
     razorpay.on("payment.failed", (response: any) => {
-      setError(response?.error?.description || "Payment failed.");
+      const reason = response?.error?.description || response?.error?.reason || "Payment failed";
+      setError(reason);
       setLoading(false);
+
+      fetch("/api/checkout/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: prepareJson.orderId,
+          reason: `Payment failed: ${reason}`,
+        }),
+      }).catch(() => {});
     });
 
     razorpay.open();
   };
 
-  const handleCheckout = async (e: React.FormEvent) => {
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -199,9 +243,33 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!shippingAddress.trim()) {
+      setError("Please enter a shipping address.");
+      return;
+    }
+
     setLoading(true);
 
     try {
+      if (paymentMethod === "cod") {
+        const res = await fetch("/api/checkout/cod-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ shippingAddress }),
+        });
+
+        const json = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          throw new Error(json?.error || "Failed to place order");
+        }
+
+        await clearCart();
+        await refreshCart();
+        router.push(`/account?order=${json.orderNumber}`);
+        return;
+      }
+
       await openRazorpay();
     } catch (err: any) {
       setLoading(false);
@@ -248,81 +316,205 @@ export default function CheckoutPage() {
         Checkout
       </h1>
 
-      <div className="mb-6 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/40 rounded-xl flex items-center gap-3">
-        <div className="w-10 h-10 bg-dadi-green dark:bg-dadi-gold rounded-full flex items-center justify-center text-white dark:text-dadi-green font-bold">
-          {(currentUser.name || "U").charAt(0).toUpperCase()}
-        </div>
-        <div>
-          <p className="font-semibold text-foreground text-sm">
-            Ordering as {currentUser.name || "Customer"}
-          </p>
-          <p className="text-xs text-muted-custom">{currentUser.email}</p>
-        </div>
-      </div>
-
       {error ? (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm">
+        <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium">
           {error}
         </div>
       ) : null}
 
-      <div className="flex flex-col lg:flex-row gap-10">
-        <div className="lg:w-2/3">
-          <form onSubmit={handleCheckout} className="space-y-8 bg-card p-6 md:p-8 rounded-2xl shadow-sm border border-border-custom">
-            <section>
-              <h2 className="text-xl font-serif font-semibold mb-4 text-foreground">Shipping Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form onSubmit={handlePlaceOrder} className="flex flex-col lg:flex-row gap-8">
+        <div className="lg:w-2/3 space-y-6">
+          <div className="bg-card border border-border-custom rounded-2xl p-6 shadow-sm">
+            <h2 className="text-lg font-serif font-semibold text-foreground mb-5">
+              Delivery Details
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-muted-custom/10 border border-border-custom/50">
+                <div className="w-9 h-9 rounded-full bg-dadi-green/10 dark:bg-dadi-gold/10 flex items-center justify-center text-dadi-green dark:text-dadi-gold shrink-0">
+                  <User size={16} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-custom">Full Name</p>
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {currentUser.name || "—"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-muted-custom/10 border border-border-custom/50">
+                <div className="w-9 h-9 rounded-full bg-dadi-green/10 dark:bg-dadi-gold/10 flex items-center justify-center text-dadi-green dark:text-dadi-gold shrink-0">
+                  <Phone size={16} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-custom">Phone</p>
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {currentUser.phone || "—"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-muted-custom/10 border border-border-custom/50 sm:col-span-2">
+                <div className="w-9 h-9 rounded-full bg-dadi-green/10 dark:bg-dadi-gold/10 flex items-center justify-center text-dadi-green dark:text-dadi-gold shrink-0">
+                  <Mail size={16} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-custom">Email</p>
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {currentUser.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-custom mb-4">
+              Need to update your name, phone, or email?{" "}
+              <Link href="/account" className="text-dadi-green dark:text-dadi-gold font-medium hover:underline">
+                Edit your profile
+              </Link>
+              .
+            </p>
+
+            <label className="flex items-center gap-2 text-sm font-semibold text-foreground mb-2">
+              <MapPin size={16} className="text-dadi-green dark:text-dadi-gold" />
+              Shipping Address
+            </label>
+            <textarea
+              required
+              rows={4}
+              value={shippingAddress}
+              onChange={(e) => setShippingAddress(e.target.value)}
+              placeholder="House no, street, area, city, state, PIN code"
+              className="w-full p-3 border border-border-custom bg-card rounded-xl focus:outline-none focus:ring-1 focus:ring-dadi-green text-foreground placeholder:text-muted-custom resize-none"
+            />
+          </div>
+
+          <div className="bg-card border border-border-custom rounded-2xl p-6 shadow-sm">
+            <h2 className="text-lg font-serif font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Tag size={18} className="text-dadi-green dark:text-dadi-gold" />
+              Have a Coupon?
+            </h2>
+
+            {couponCode ? (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/40">
+                <div>
+                  <p className="text-sm font-semibold text-dadi-green dark:text-dadi-gold">
+                    {couponCode}
+                  </p>
+                  <p className="text-xs text-muted-custom">
+                    You saved ₹{discount.toLocaleString("en-IN")}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  disabled={couponLoading}
+                  className="p-2 rounded-full text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
                 <input
-                  required
                   type="text"
-                  value={form.fullName}
-                  onChange={(e) => handleChange("fullName", e.target.value)}
-                  placeholder="Full Name"
-                  className="w-full p-3 border border-border-custom bg-card rounded-md focus:outline-none focus:ring-1 focus:ring-dadi-green text-foreground placeholder:text-muted-custom md:col-span-2"
+                  value={couponInput}
+                  onChange={(e) => {
+                    setCouponInput(e.target.value.toUpperCase());
+                    setCouponError("");
+                    setCouponSuccess("");
+                  }}
+                  placeholder="Enter coupon code"
+                  className="flex-1 p-3 border border-border-custom bg-card rounded-xl focus:outline-none focus:ring-1 focus:ring-dadi-green text-foreground placeholder:text-muted-custom uppercase"
                 />
-                <input
-                  required
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => handleChange("email", e.target.value)}
-                  placeholder="Email Address"
-                  className="w-full p-3 border border-border-custom bg-card rounded-md focus:outline-none focus:ring-1 focus:ring-dadi-green text-foreground placeholder:text-muted-custom md:col-span-2"
-                />
-                <input
-                  required
-                  type="tel"
-                  value={form.phone}
-                  onChange={(e) => handleChange("phone", e.target.value)}
-                  placeholder="Phone Number"
-                  className="w-full p-3 border border-border-custom bg-card rounded-md focus:outline-none focus:ring-1 focus:ring-dadi-green text-foreground placeholder:text-muted-custom md:col-span-2"
-                />
-                <textarea
-                  required
-                  rows={4}
-                  value={form.shippingAddress}
-                  onChange={(e) => handleChange("shippingAddress", e.target.value)}
-                  placeholder="Full shipping address"
-                  className="w-full p-3 border border-border-custom bg-card rounded-md focus:outline-none focus:ring-1 focus:ring-dadi-green text-foreground placeholder:text-muted-custom md:col-span-2 resize-none"
-                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleApplyCoupon}
+                  disabled={couponLoading || !couponInput.trim()}
+                  className="px-6 rounded-xl font-semibold"
+                >
+                  {couponLoading ? <Loader2 size={18} className="animate-spin" /> : "Apply"}
+                </Button>
               </div>
-            </section>
+            )}
 
-            <section>
-              <h2 className="text-xl font-serif font-semibold mb-4 text-foreground">Payment</h2>
-              <div className="bg-muted-custom/10 p-4 border border-border-custom rounded-md text-sm text-muted-custom">
-                UPI, NetBanking, cards, and wallets are handled securely by Razorpay.
+            {couponError && (
+              <p className="text-xs text-red-500 mt-2 font-medium">{couponError}</p>
+            )}
+            {couponSuccess && !couponError && (
+              <p className="text-xs text-dadi-green dark:text-dadi-gold mt-2 font-medium">
+                {couponSuccess}
+              </p>
+            )}
+          </div>
+
+          <div className="bg-card border border-border-custom rounded-2xl p-6 shadow-sm">
+            <h2 className="text-lg font-serif font-semibold text-foreground mb-4">
+              Payment Method
+            </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("razorpay")}
+                className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                  paymentMethod === "razorpay"
+                    ? "border-dadi-green bg-dadi-green/5 dark:border-dadi-gold dark:bg-dadi-gold/10"
+                    : "border-border-custom hover:border-muted-custom/40"
+                }`}
+              >
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                    paymentMethod === "razorpay"
+                      ? "bg-dadi-green text-white dark:bg-dadi-gold dark:text-dadi-green"
+                      : "bg-muted-custom/10 text-muted-custom"
+                  }`}
+                >
+                  <CreditCard size={16} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Pay Online</p>
+                  <p className="text-xs text-muted-custom mt-0.5">
+                    UPI, Cards, NetBanking & Wallets
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("cod")}
+                className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                  paymentMethod === "cod"
+                    ? "border-dadi-green bg-dadi-green/5 dark:border-dadi-gold dark:bg-dadi-gold/10"
+                    : "border-border-custom hover:border-muted-custom/40"
+                }`}
+              >
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                    paymentMethod === "cod"
+                      ? "bg-dadi-green text-white dark:bg-dadi-gold dark:text-dadi-green"
+                      : "bg-muted-custom/10 text-muted-custom"
+                  }`}
+                >
+                  <Wallet size={16} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Cash on Delivery</p>
+                  <p className="text-xs text-muted-custom mt-0.5">
+                    Pay when your order arrives
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            {paymentMethod === "razorpay" && (
+              <div className="mt-4 flex items-center gap-2 text-xs text-muted-custom bg-muted-custom/10 border border-border-custom rounded-xl p-3">
+                <ShieldCheck size={16} className="text-dadi-green dark:text-dadi-gold shrink-0" />
+                Payments are encrypted and processed securely by Razorpay.
               </div>
-            </section>
-
-            <Button
-              type="submit"
-              variant="primary"
-              className="w-full py-3 text-lg"
-              disabled={loading}
-            >
-              {loading ? "Processing..." : `Pay ₹${total.toLocaleString("en-IN")}`}
-            </Button>
-          </form>
+            )}
+          </div>
         </div>
 
         <div className="lg:w-1/3">
@@ -342,9 +534,12 @@ export default function CheckoutPage() {
                     <p className="text-muted-custom">
                       Qty: {item.quantity}
                       {item.selectedSize ? ` · ${item.selectedSize}` : ""}
+                      {item.color ? ` · ${item.color}` : ""}
                     </p>
                   </div>
-                  <p className="font-medium text-foreground">₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
+                  <p className="font-medium text-foreground">
+                    ₹{(item.price * item.quantity).toLocaleString("en-IN")}
+                  </p>
                 </div>
               ))}
             </div>
@@ -352,22 +547,36 @@ export default function CheckoutPage() {
             <div className="border-t border-border-custom pt-4 space-y-2 mb-6 text-sm">
               <div className="flex justify-between text-muted-custom">
                 <span>Subtotal</span>
-                <span className="text-foreground">₹{total.toLocaleString("en-IN")}</span>
+                <span className="text-foreground">₹{subtotal.toLocaleString("en-IN")}</span>
               </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-dadi-green dark:text-dadi-gold">
+                  <span>Coupon Discount</span>
+                  <span>−₹{discount.toLocaleString("en-IN")}</span>
+                </div>
+              )}
               <div className="flex justify-between text-muted-custom">
                 <span>Shipping</span>
                 <span className="text-green-600 dark:text-green-400">Free</span>
               </div>
-              <div className="flex justify-between items-end mt-4">
+              <div className="flex justify-between items-end mt-4 pt-2 border-t border-border-custom">
                 <span className="font-serif text-lg font-bold text-foreground">Total</span>
                 <span className="font-bold text-2xl text-dadi-green-dark dark:text-dadi-gold">
                   ₹{total.toLocaleString("en-IN")}
                 </span>
               </div>
             </div>
+
+            <Button type="submit" variant="primary" className="w-full py-3 text-lg" disabled={loading}>
+              {loading
+                ? "Processing..."
+                : paymentMethod === "cod"
+                ? `Place Order · ₹${total.toLocaleString("en-IN")}`
+                : `Pay ₹${total.toLocaleString("en-IN")}`}
+            </Button>
           </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

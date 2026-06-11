@@ -201,9 +201,11 @@ model Order {
   trackingNumber    String?
   courierName       String?
   paidAt            DateTime?
+  confirmedAt       DateTime?
   shippedAt         DateTime?
   deliveredAt       DateTime?
   cancelledAt       DateTime?
+  paymentFailedAt   DateTime?
   refundedAt        DateTime?
   razorpayOrderId   String?              @unique
   razorpayPaymentId String?              @unique
@@ -434,11 +436,13 @@ enum UserRole {
 
 enum OrderStatus {
   PENDING
+  PAID
   CONFIRMED
   SHIPPED
-  IN_TRANSIT
+  DELIVERED
   RECEIVED
   CANCELLED
+  FAILED
   REFUNDED
 }
 

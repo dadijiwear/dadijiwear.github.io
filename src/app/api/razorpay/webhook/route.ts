@@ -68,6 +68,8 @@ export async function POST(request: Request) {
       case "payment.captured":
         if (order.paymentStatus !== PaymentStatus.CAPTURED) {
           await prisma.$transaction(async (tx) => {
+            const conflictItems: string[] = [];
+
             for (const item of order.items) {
               const updated = await tx.productVariant.updateMany({
                 where: { 
@@ -80,7 +82,8 @@ export async function POST(request: Request) {
               });
               
               if (updated.count === 0) {
-                throw new Error(`Insufficient stock for ${item.productName}`);
+                conflictItems.push(item.productName);
+                continue;
               }
               
               await tx.inventoryMovement.create({
@@ -96,7 +99,7 @@ export async function POST(request: Request) {
             await tx.order.update({
               where: { id: order.id },
               data: {
-                status: OrderStatus.CONFIRMED,
+                status: OrderStatus.PAID,
                 paymentStatus: PaymentStatus.CAPTURED,
                 razorpayPaymentId,
                 paidAt: new Date(),
@@ -107,8 +110,10 @@ export async function POST(request: Request) {
               data: { 
                 orderId: order.id, 
                 fromStatus: order.status, 
-                toStatus: OrderStatus.CONFIRMED, 
-                note: "Webhook: Payment Captured" 
+                toStatus: OrderStatus.PAID, 
+                note: conflictItems.length > 0
+                  ? `Webhook: Payment Captured. STOCK CONFLICT for: ${conflictItems.join(", ")}. Admin must review.`
+                  : "Webhook: Payment Captured"
               },
             });
           });
@@ -120,9 +125,24 @@ export async function POST(request: Request) {
           order.paymentStatus !== PaymentStatus.FAILED && 
           order.paymentStatus !== PaymentStatus.CAPTURED
         ) {
-          await prisma.order.update({
-            where: { id: order.id },
-            data: { paymentStatus: PaymentStatus.FAILED },
+          await prisma.$transaction(async (tx) => {
+            await tx.order.update({
+              where: { id: order.id },
+              data: { 
+                status: OrderStatus.FAILED,
+                paymentStatus: PaymentStatus.FAILED,
+                paymentFailedAt: new Date(),
+              },
+            });
+
+            await tx.orderStatusHistory.create({
+              data: {
+                orderId: order.id,
+                fromStatus: order.status,
+                toStatus: OrderStatus.FAILED,
+                note: "Webhook: Payment Failed",
+              },
+            });
           });
         }
         break;

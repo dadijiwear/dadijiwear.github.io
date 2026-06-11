@@ -69,8 +69,20 @@ export async function POST(request: Request) {
     if (order.paymentStatus === PaymentStatus.CAPTURED) {
       return NextResponse.json({ success: true });
     }
-
+    
     await prisma.$transaction(async (tx) => {
+      
+      if (order.couponId) {
+        await tx.couponRedemption.create({
+          data: { couponId: order.couponId, userId: user.id, orderId: order.id },
+        });
+        await tx.coupon.update({
+          where: { id: order.couponId },
+          data: { usageCount: { increment: 1 } },
+        });
+      }
+      const conflictItems: string[] = [];
+
       for (const item of order.items) {
         const updated = await tx.productVariant.updateMany({
           where: {
@@ -87,7 +99,8 @@ export async function POST(request: Request) {
         });
 
         if (updated.count === 0) {
-          throw new Error(`Insufficient stock for ${item.productName}`);
+          conflictItems.push(item.productName);
+          continue;
         }
 
         await tx.inventoryMovement.create({
@@ -104,7 +117,7 @@ export async function POST(request: Request) {
       await tx.order.update({
         where: { id: order.id },
         data: {
-          status: OrderStatus.CONFIRMED,
+          status: OrderStatus.PAID,
           paymentStatus: PaymentStatus.CAPTURED,
           paymentMethod: "RAZORPAY",
           razorpayOrderId,
@@ -118,9 +131,12 @@ export async function POST(request: Request) {
         data: {
           orderId: order.id,
           fromStatus: OrderStatus.PENDING,
-          toStatus: OrderStatus.CONFIRMED,
+          toStatus: OrderStatus.PAID,
           changedByUserId: user.id,
-          note: "Payment confirmed",
+          note:
+            conflictItems.length > 0
+              ? `Payment confirmed. STOCK CONFLICT for: ${conflictItems.join(", ")}. Admin must review and resolve manually.`
+              : "Payment confirmed",
         },
       });
 
@@ -151,6 +167,7 @@ export async function POST(request: Request) {
           where: { userId: user.id },
           data: {
             status: "ACTIVE",
+            couponId: null,
             subtotal: new Prisma.Decimal(0),
             discountAmount: new Prisma.Decimal(0),
             shippingAmount: new Prisma.Decimal(0),
@@ -159,6 +176,7 @@ export async function POST(request: Request) {
         });
       }
     });
+
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

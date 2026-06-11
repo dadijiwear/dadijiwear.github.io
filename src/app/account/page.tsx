@@ -1511,11 +1511,29 @@ useEffect(() => {
                               <span className="text-emerald-900">₹{order.totalAmount ?? order.total_amount ?? 0}</span>
                             </div>
                             <div className="flex justify-between text-gray-400 mt-1.5 text-xs">
-                              <span>{new Date(order.createdAt ?? order.created_at ?? Date.now()).toLocaleDateString()}</span>
-                              <span className="bg-emerald-100/60 text-emerald-950 px-2 py-0.5 rounded-md uppercase tracking-wider font-bold text-[10px]">
-                                {order.status ?? "Delivered"}
+                              
+                              <span>
+                                {new Date(order.createdAt ?? order.created_at ?? Date.now()).toLocaleString("en-IN", {
+                                  dateStyle: "medium",
+                                  timeStyle: "short",
+                                  })}
                               </span>
-                            </div>
+                              
+                              <span
+                                className={`px-2 py-0.5 rounded-md uppercase tracking-wider font-bold text-[10px] ${
+                                  order.status === "FAILED" || order.status === "CANCELLED"
+                                  ? "bg-red-100 text-red-700"
+                                    : order.status === "PAID" || order.status === "CONFIRMED" || order.status === "SHIPPED" || order.status === "DELIVERED"
+                                  ? "bg-emerald-100/60 text-emerald-950"
+                                    : order.status === "REFUNDED"
+                                  ? "bg-purple-100 text-purple-700"
+                                    : "bg-amber-100 text-amber-800"
+                                  }`}
+                                  >
+                                  {order.status ?? "PENDING"}
+                              </span>
+                              
+                              </div>
                           </div>
                         ))}
                       </div>

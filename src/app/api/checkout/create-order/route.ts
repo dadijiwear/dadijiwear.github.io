@@ -29,14 +29,24 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
-    const fullName = String(body.fullName || "").trim();
-    const email = String(body.email || user.email || "").trim();
-    const phone = String(body.phone || "").trim();
     const shippingAddress = String(body.shippingAddress || "").trim();
 
-    if (!fullName || !email || !phone || !shippingAddress) {
-      return NextResponse.json({ error: "All shipping fields are required" }, { status: 400 });
+    if (!shippingAddress) {
+      return NextResponse.json({ error: "Shipping address is required" }, { status: 400 });
     }
+
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+
+    if (!dbUser?.name || !dbUser?.phone) {
+      return NextResponse.json(
+        { error: "Please complete your profile before placing an order" },
+        { status: 400 }
+      );
+    }
+
+    const fullName = dbUser.name;
+    const email = dbUser.email;
+    const phone = dbUser.phone;
 
     const cart = await prisma.cart.findUnique({
       where: { userId: user.id },
@@ -87,7 +97,10 @@ export async function POST(request: Request) {
     }
 
     const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-    
+    /*
+     * -----------------------------------------------------------
+     * WE DONT NEED THIS ANYMORE.
+     * each checkout created its own PENDING order. this will stay in the history regardless of outcome. 
     const existingPendingOrder = await prisma.order.findFirst({
       where: {
         userId: user.id,
@@ -100,7 +113,9 @@ export async function POST(request: Request) {
       await prisma.order.delete({
         where: { id: existingPendingOrder.id },
       });
-    }
+    }  
+    ---------------------------------------------------------------
+    */
 
     if (
       !process.env.RAZORPAY_KEY_ID ||

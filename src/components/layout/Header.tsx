@@ -98,9 +98,9 @@ export default function Header() {
       <div className="container mx-auto flex items-center justify-between px-4 md:px-8">
         
         <Link href="/" className="group flex items-center gap-2 text-2xl font-serif tracking-wide text-dadi-cream transition hover:text-dadi-gold">
-          <div className="hidden sm:flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-dadi-gold bg-dadi-cream text-xl font-bold text-dadi-green shadow-sm transition-transform group-hover:scale-105">
-            <span>{isUserLoggedIn && firstName ? firstName[0].toUpperCase() : "Y"}</span>
-          </div>
+        {/*<div className="hidden sm:flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-dadi-gold bg-dadi-cream text-xl font-bold text-dadi-green shadow-sm transition-transform group-hover:scale-105">
+            <span>{isUserLoggedIn && firstName ? firstName[0].toUpperCase() : "?"}</span>
+          </div> */}
           <span className="font-serif block">Mom &amp; Son</span>
         </Link>
 
