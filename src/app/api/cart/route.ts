@@ -8,7 +8,15 @@ function decimal(value: unknown) {
 }
 
 function buildItem(item: any) {
+  const colorImage = item?.product?.images?.find(
+    (img: any) =>
+      img.color &&
+      item.color &&
+      img.color.trim().toLowerCase() === item.color.trim().toLowerCase()
+  )?.url;
+
   const primaryImage =
+    colorImage ??
     item?.product?.images?.find((img: any) => img.isPrimary)?.url ??
     item?.product?.images?.[0]?.url ??
     "";
@@ -37,6 +45,7 @@ function buildItem(item: any) {
         alt: img.alt,
         isPrimary: img.isPrimary,
         sortOrder: img.sortOrder,
+        color: img.color,
       })) ?? [],
       image: primaryImage,
       category: item.product?.category,

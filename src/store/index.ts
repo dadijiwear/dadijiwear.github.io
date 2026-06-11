@@ -59,7 +59,7 @@ interface StoreState {
 
   hydrateAuth: () => Promise<void>;
   refreshCart: () => Promise<void>;
-  addToCart: (product: Product, size?: string, quantity?: number, color?: string) => Promise<{ success: boolean; message: string }>;
+  addToCart: (product: Product, size?: string, quantity?: number, color?: string, variantId?: string) => Promise<{ success: boolean; message: string }>;
   removeFromCart: (cartItemId: string) => Promise<void>;
   updateCartQuantity: (cartItemId: string, quantity: number) => Promise<{ success: boolean; message: string }>;
   clearCart: () => Promise<void>;
@@ -73,7 +73,15 @@ function toNumber(value: unknown): number {
 }
 
 function mapApiItem(item: any): CartItem {
+  const colorImage = item?.product?.images?.find(
+    (img: any) =>
+      img.color &&
+      item.color &&
+      img.color.trim().toLowerCase() === item.color.trim().toLowerCase()
+  )?.url;
+
   const primaryImage =
+    colorImage ??
     item?.product?.images?.find((img: any) => img.isPrimary)?.url ??
     item?.product?.images?.[0]?.url ??
     "";
@@ -191,7 +199,7 @@ export const useStore = create<StoreState>((set, get) => ({
     }
   },
 
-  addToCart: async (product, size, quantity = 1, color) => {
+  addToCart: async (product, size, quantity = 1, color, variantId) => {
     const state = get();
 
     if (!state.authReady) {
@@ -212,6 +220,7 @@ export const useStore = create<StoreState>((set, get) => ({
         },
         body: JSON.stringify({
           productId: product.id,
+          variantId,
           size,
           color,
           quantity,

@@ -22,7 +22,7 @@ import { useStore } from "@/store";
 export default function ProductDetailPage() {
   const { slug } = useParams();
   const router = useRouter();
-  const { addToCart } = useStore();
+  const { addToCart, bagLoading } = useStore();
 
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -117,8 +117,23 @@ export default function ProductDetailPage() {
       id: product.id || product._id,
       image: images[0],
     };
+    
+  const selectedVariant = product.variants?.find((v: any) => {
+    const sizeMatch = selectedSize ? v.ageGroup === selectedSize : true;
+    const colorMatch = selectedColor
+    ? v.color?.trim().toLowerCase() === selectedColor.trim().toLowerCase()
+    : true;
+    return sizeMatch && colorMatch && v.active;
+  });
 
-  const result = await addToCart(storeProduct, selectedSize || undefined, quantity, selectedColor || undefined);
+  const result = await addToCart(
+    storeProduct,
+    selectedSize || undefined,
+    quantity,
+    selectedColor || undefined,
+    selectedVariant?.id 
+  );
+
 
     if (result.success) {
       setCartMessage({ type: "success", text: "Added to your bag!" });
@@ -435,25 +450,34 @@ export default function ProductDetailPage() {
                 <Button
                   onClick={handleAddToCart}
                   variant="outline"
-                  disabled={isOutOfStock}
+                  disabled={isOutOfStock || bagLoading}
                   className={`flex-1 py-3 text-base rounded-xl gap-2 font-semibold ${
-                  isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
+                  isOutOfStock || bagLoading ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                   >
+                  {bagLoading ? (
+                    <span className="w-5 h-5 border-2 border-dadi-green/30 border-t-dadi-green dark:border-dadi-gold/30 dark:border-t-dadi-gold rounded-full animate-spin" />
+                  ) : (
                   <ShoppingBag size={20} />
-                  {isOutOfStock ? "Out of Stock" : "Add to bag"}
+                  )}
+                  {isOutOfStock ? "Out of Stock" : bagLoading ? "Adding..." : "Add to bag"}
                 </Button>
 
                 <Button
                   onClick={handleBuyNow}
                   variant="primary"
-                  disabled={isOutOfStock}
+                  disabled={isOutOfStock || bagLoading}
                   className={`flex-1 py-3 text-base rounded-xl gap-2 font-semibold ${
-                  isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
+                  isOutOfStock || bagLoading ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                   >
+                  {bagLoading ? (
+                    <span className="w-5 h-5 border-2 border-dadi-green-dark/30 border-t-dadi-green-dark rounded-full animate-spin" />
+                  ) : (
+
                   <Zap size={20} />
-                  {isOutOfStock ? "Out of Stock" : "Buy Now"}
+                  )}
+                  {isOutOfStock ? "Out of Stock" :bagLoading ? "Just a sec..." : "Buy Now"}
                 </Button>
               </div>
 

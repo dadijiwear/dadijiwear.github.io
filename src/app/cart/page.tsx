@@ -29,7 +29,7 @@ export default function CartPage() {
   useEffect(() => {
     void hydrateAuth();
   }, [hydrateAuth]);
-  {/*
+  {/* we do not need this, this effect force reloads the cart and sets it to default quantity.
   useEffect(() => {
     if (authReady && currentUser) {
       void refreshCart();
@@ -104,7 +104,8 @@ export default function CartPage() {
               <div className="flex-1">
                 <h3 className="font-medium text-lg text-foreground leading-tight">{item.name}</h3>
                 <p className="text-muted-custom text-sm mt-1">
-                  Size: {item.selectedSize || "-"} · Qty: {item.quantity}
+                  Size: {item.selectedSize || "-"} 
+                  {item.color ? ` · Color: ${item.color}` : ""} · Qty: {item.quantity}
                 </p>
                 <p className="font-bold text-dadi-green dark:text-dadi-gold mt-2">
                   ₹{(item.price * item.quantity).toLocaleString("en-IN")}
