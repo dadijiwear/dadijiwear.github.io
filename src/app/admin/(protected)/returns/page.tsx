@@ -55,6 +55,15 @@ export default function AdminReturnsPage() {
   const [resolutionNote, setResolutionNote] = useState("");
   const [razorpayRefundId, setRazorpayRefundId] = useState("");
 
+  const [createOrderNumber, setCreateOrderNumber] = useState("");
+  const [createOrder, setCreateOrder] = useState<any | null>(null);
+  const [createQuantities, setCreateQuantities] = useState<Record<string, number>>({});
+  const [createReason, setCreateReason] = useState("");
+  const [createDetails, setCreateDetails] = useState("");
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [createSuccess, setCreateSuccess] = useState("");
+
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -84,6 +93,95 @@ export default function AdminReturnsPage() {
     void load();
   }, [load]);
 
+  const loadOrderForReturn = async () => {
+    setCreateError("");
+    setCreateSuccess("");
+    setCreateOrder(null);
+    setCreateQuantities({});
+
+    const orderNumber = createOrderNumber.trim();
+
+    if (!orderNumber) {
+      setCreateError("Enter an order number");
+      return;
+    }
+
+    try {
+      const searchRes = await fetch(`/api/admin/orders?search=${encodeURIComponent(orderNumber)}&limit=5`, {
+        cache: "no-store",
+      });
+      const searchJson = await searchRes.json().catch(() => null);
+
+      if (!searchRes.ok) throw new Error(searchJson?.error || "Failed to find order");
+
+      const match = (searchJson.orders || []).find((o: any) => o.orderNumber === orderNumber);
+
+      if (!match) {
+        setCreateError("Order not found");
+        return;
+      }
+
+      const detailRes = await fetch(`/api/admin/orders/${match.id}`, { cache: "no-store" });
+      const detailJson = await detailRes.json().catch(() => null);
+
+      if (!detailRes.ok) throw new Error(detailJson?.error || "Failed to load order");
+
+      setCreateOrder(detailJson.order);
+    } catch (err: any) {
+      setCreateError(err?.message || "Failed to load order");
+    }
+  };
+
+  const submitAdminReturn = async () => {
+    if (!createOrder) return;
+    setCreateError("");
+    setCreateSuccess("");
+
+    if (!createReason.trim()) {
+      setCreateError("Please enter a reason");
+      return;
+    }
+
+    const items = Object.entries(createQuantities)
+      .filter(([, qty]) => qty > 0)
+      .map(([orderItemId, quantity]) => ({ orderItemId, quantity }));
+
+    if (items.length === 0) {
+      setCreateError("Select at least one item to return");
+      return;
+    }
+
+    setCreateLoading(true);
+
+    try {
+      const res = await fetch("/api/admin/returns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: createOrder.id,
+          reason: createReason.trim(),
+          details: createDetails.trim(),
+          items,
+        }),
+      });
+
+      const json = await res.json().catch(() => null);
+
+      if (!res.ok) throw new Error(json?.error || "Failed to create return request");
+
+      setCreateSuccess(`Return request created (status: ${json.returnRequest.status})`);
+      setCreateOrder(null);
+      setCreateOrderNumber("");
+      setCreateQuantities({});
+      setCreateReason("");
+      setCreateDetails("");
+      await load();
+    } catch (err: any) {
+      setCreateError(err?.message || "Failed to create return request");
+    } finally {
+      setCreateLoading(false);
+    }
+  };
   const openReturn = async (id: string) => {
     setActionError("");
     setSelected(null);
@@ -194,6 +292,89 @@ export default function AdminReturnsPage() {
           Search
         </button>
       </div>
+
+      <hr />
+
+      <h2>Create Return Request</h2>
+
+      <div style={{ margin: "10px 0" }}>
+        <label>
+          Order Number:{" "}
+          <input
+            type="text"
+            value={createOrderNumber}
+            onChange={(e) => setCreateOrderNumber(e.target.value)}
+            placeholder="ORD-XXXXXXXX-XXXXXXXX"
+            size={30}
+          />
+        </label>
+        {"  "}
+        <button onClick={loadOrderForReturn}>Load Order</button>
+      </div>
+
+      {createError && <p style={{ color: "red" }}>{createError}</p>}
+      {createSuccess && <p style={{ color: "green" }}>{createSuccess}</p>}
+
+      {createOrder && (
+        <div style={{ margin: "10px 0" }}>
+          <p>
+            Customer: {createOrder.customerName} ({createOrder.customerEmail})
+            <br />
+            Order Status: {createOrder.status}
+          </p>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Size</th>
+                <th>Color</th>
+                <th>Ordered Qty</th>
+                <th>Return Qty</th>
+              </tr>
+            </thead>
+            <tbody>
+              {createOrder.items.map((item: any) => (
+                <tr key={item.id}>
+                  <td>{item.productName}</td>
+                  <td>{item.ageGroup}</td>
+                  <td>{item.color}</td>
+                  <td>{item.quantity}</td>
+                  <td>
+                    <select
+                      value={createQuantities[item.id] || 0}
+                      onChange={(e) =>
+                        setCreateQuantities((prev) => ({ ...prev, [item.id]: Number(e.target.value) }))
+                      }
+                    >
+                      {Array.from({ length: item.quantity + 1 }, (_, n) => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <p>
+            <label>
+              Reason:{" "}
+              <input type="text" value={createReason} onChange={(e) => setCreateReason(e.target.value)} size={40} />
+            </label>
+          </p>
+          <p>
+            <label>
+              Details:{" "}
+              <input type="text" value={createDetails} onChange={(e) => setCreateDetails(e.target.value)} size={50} />
+            </label>
+          </p>
+
+          <button disabled={createLoading} onClick={submitAdminReturn}>
+            Create Return Request
+          </button>
+        </div>
+      )}
 
       <hr />
 
