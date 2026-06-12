@@ -20,7 +20,13 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
 
     const order = await prisma.order.findFirst({
       where: { id, userId: user.id },
-      include: { items: true },
+      include: {
+        items: true,
+        returnRequests: {
+          orderBy: { requestedAt: "desc" },
+          include: { items: true },
+        },
+      },
     });
 
     if (!order) {
