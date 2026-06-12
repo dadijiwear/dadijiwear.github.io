@@ -2,83 +2,74 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { prisma } from "@/lib/prisma";
 
-function normalizePhone(value?: string): string | null {
-  const trimmed = value?.trim();
-  if (!trimmed) return null;
-  if (/^\+\d{10,15}$/.test(trimmed)) return trimmed;
+export const runtime = "nodejs";
 
-  const digits = trimmed.replace(/\D/g, "");
-  if (!digits) return null;
-  if (digits.length === 10) return `+91${digits}`;
-  if (digits.length === 11 && digits.startsWith("0")) return `+91${digits.slice(1)}`;
-  if (digits.length === 12 && digits.startsWith("91")) return `+${digits}`;
-
-  return `+${digits}`;
+async function getAuthedUser() {
+  const supabase = await createClient();
+  return supabase.auth.getUser();
 }
 
-function normalizeText(value?: string): string | null {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : null;
-}
-
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const checkEmail = searchParams.get("checkEmail");
-    const checkPhone = searchParams.get("checkPhone");
-
-    if (checkEmail) {
-      const existingUser = await prisma.user.findFirst({
-        where: { email: checkEmail.trim().toLowerCase() },
-      });
-      return NextResponse.json({ exists: !!existingUser });
-    }
-
-    if (checkPhone) {
-      const formattedPhone = normalizePhone(checkPhone);
-      if (!formattedPhone) return NextResponse.json({ exists: false });
-      const existingUser = await prisma.user.findFirst({
-        where: { phone: formattedPhone },
-      });
-      return NextResponse.json({ exists: !!existingUser });
-    }
-
-    const supabase = await createClient();
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser();
+    } = await getAuthedUser();
 
     if (error || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const userProfile = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: {
-        orders: {
-          orderBy: { createdAt: "desc" },
-        },
+    const orderInclude = {
+      orders: {
+        orderBy: { createdAt: "desc" as const },
+        include: { items: true },
       },
+      reviews: {
+        orderBy: { createdAt: "desc" as const },
+      },
+    };
+
+    let dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: orderInclude,
     });
 
-    return NextResponse.json({ user: userProfile });
+    if (!dbUser) {
+      dbUser = await prisma.user.create({
+        data: {
+          id: user.id,
+          email: user.email ?? "",
+        },
+        include: orderInclude,
+      });
+    }
+
+    return NextResponse.json({
+      user: {
+        id: dbUser.id,
+        name: dbUser.name,
+        email: dbUser.email,
+        phone: dbUser.phone,
+        address: dbUser.address,
+        kidsAge: dbUser.kidsAge,
+        role: dbUser.role,
+        orders: dbUser.orders ?? [],
+        reviews: dbUser.reviews ?? [],
+      },
+    });
+    
+
   } catch (error: any) {
-    console.error(error);
-    return NextResponse.json(
-      { error: error?.message ?? "Failed to load profile" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error?.message || "Failed to load profile" }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser();
+    } = await getAuthedUser();
 
     if (error || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -86,58 +77,50 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
-    const name = normalizeText(body.name);
-    const phone = normalizePhone(body.phone);
-    const kidsAge = normalizeText(body.kidsAge);
-    const address = normalizeText(body.address);
+    const name = typeof body.name === "string" ? body.name.trim() : undefined;
+    const phone = typeof body.phone === "string" ? body.phone.trim() : undefined;
+    const kidsAge = typeof body.kidsAge === "string" ? body.kidsAge.trim() : undefined;
+    const address = typeof body.address === "string" ? body.address.trim() : undefined;
 
-    if (phone) {
-      const duplicatePhone = await prisma.user.findFirst({
-        where: {
-          phone,
-          NOT: { id: user.id },
-        },
-      });
-      if (duplicatePhone) {
-        return NextResponse.json(
-          { error: "This phone number is already used by another account." },
-          { status: 409 }
-        );
-      }
-    }
+    const data: Record<string, any> = {};
+    if (name !== undefined) data.name = name || null;
+    if (phone !== undefined) data.phone = phone || null;
+    if (kidsAge !== undefined) data.kidsAge = kidsAge || null;
+    if (address !== undefined) data.address = address || null;
 
-    const updatedProfile = await prisma.user.upsert({
+    const updated = await prisma.user.update({
       where: { id: user.id },
-      update: {
-        email: user.email ?? "",
-        name,
-        phone,
-        kidsAge,
-        address,
-      },
-      create: {
-        id: user.id,
-        email: user.email ?? "",
-        name,
-        phone,
-        kidsAge,
-        address,
+      data,
+      include: {
+        orders: {
+          orderBy: { createdAt: "desc" },
+          include: { items: true },
+        },
+        reviews: {
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 
-    return NextResponse.json({ success: true, user: updatedProfile });
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        phone: updated.phone,
+        address: updated.address,
+        kidsAge: updated.kidsAge,
+        role: updated.role,
+        orders: updated.orders ?? [],
+        reviews: updated.reviews ?? [],
+      },
+    });  
+
   } catch (error: any) {
     if (error?.code === "P2002") {
-      return NextResponse.json(
-        { error: "This information conflicts with an existing account parameter." },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "This phone number is already in use" }, { status: 409 });
     }
-
-    console.error("PROFILE SAVE ERROR:", error);
-    return NextResponse.json(
-      { error: error?.message ?? "Failed to save profile" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error?.message || "Failed to update profile" }, { status: 500 });
   }
 }

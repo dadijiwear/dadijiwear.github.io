@@ -60,7 +60,13 @@ export async function POST(request: Request) {
     const totalAmount = Math.max(0, subtotal - discountAmount + shippingAmount);
 
     for (const item of cart.items) {
-      if (!item.productVariant || item.productVariant.stock < item.quantity) {
+      if (!item.productVariant) {
+        return NextResponse.json({ error: `Not enough stock for ${item.productName}` }, { status: 409 });
+      }
+
+      const available = item.productVariant.stock - item.productVariant.reserved;
+
+      if (available < item.quantity) {
         return NextResponse.json({ error: `Not enough stock for ${item.productName}` }, { status: 409 });
       }
     }
@@ -69,12 +75,14 @@ export async function POST(request: Request) {
 
     const order = await prisma.$transaction(async (tx) => {
       for (const item of cart.items) {
-        const updated = await tx.productVariant.updateMany({
-          where: { id: item.productVariantId, stock: { gte: item.quantity } },
-          data: { stock: { decrement: item.quantity } },
-        });
+        const reservedCount = await tx.$executeRaw`
+          UPDATE "ProductVariant"
+          SET reserved = reserved + ${item.quantity}
+          WHERE id = ${item.productVariantId}
+            AND (stock - reserved) >= ${item.quantity}
+        `;
 
-        if (updated.count === 0) {
+        if (reservedCount === 0) {
           throw new Error(`Not enough stock for ${item.productName}`);
         }
       }
@@ -119,10 +127,10 @@ export async function POST(request: Request) {
           data: {
             productVariantId: item.productVariantId,
             orderItemId: item.id,
-            movementType: InventoryMovementType.SOLD,
+            movementType: InventoryMovementType.RESERVED,
             quantity: item.quantity,
             actorUserId: user.id,
-            note: `COD Order ${created.orderNumber}`,
+            note: `COD Order ${created.orderNumber} - awaiting admin confirmation`,
           },
         });
       }
@@ -133,7 +141,7 @@ export async function POST(request: Request) {
           fromStatus: null,
           toStatus: OrderStatus.PENDING,
           changedByUserId: user.id,
-          note: "Order placed via Cash on Delivery",
+          note: "Order placed via Cash on Delivery. Stock reserved, pending admin confirmation.",
         },
       });
 

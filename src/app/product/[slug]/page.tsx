@@ -138,8 +138,10 @@ export default function ProductDetailPage() {
     if (result.success) {
       setCartMessage({ type: "success", text: "Added to your bag!" });
       setTimeout(() => setCartMessage(null), 3000);
+      return true;
     } else {
       setCartMessage({ type: "error", text: result.message });
+      return false;
     }
   };
 

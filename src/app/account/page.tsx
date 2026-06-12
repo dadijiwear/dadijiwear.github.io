@@ -1505,7 +1505,12 @@ useEffect(() => {
                     ) : (
                       <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
                         {orders.map((order: any) => (
-                          <div key={order.id} className="text-sm border border-gray-100 rounded-xl p-3 bg-gray-50/50 hover:bg-gray-50 transition">
+                          <Link
+                          key={order.id}
+                            href={`/account/orders/${order.id}`}
+                            className="block text-sm border border-gray-100 rounded-xl p-3 bg-gray-50/50 hover:bg-gray-50 transition"> 
+
+
                             <div className="flex justify-between font-bold text-gray-800">
                               <span>Order #{String(order.id).slice(0, 8).toUpperCase()}</span>
                               <span className="text-emerald-900">₹{order.totalAmount ?? order.total_amount ?? 0}</span>
@@ -1534,7 +1539,7 @@ useEffect(() => {
                               </span>
                               
                               </div>
-                          </div>
+                          </Link>
                         ))}
                       </div>
                     )}

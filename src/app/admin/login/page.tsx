@@ -7,11 +7,9 @@ import { createClient } from "@/utils/supabase/client";
 
 type Step = "email" | "password" | "processing";
 
-const BACKGROUND_IMAGE = "/assets/pineforest.jpg"; 
+const BACKGROUND_IMAGE = "/assets/pineforest.jpg";
 
-const INITIAL_LINES = [
-    "$"
-];
+const INITIAL_LINES = [""];
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -27,22 +25,19 @@ export default function AdminLoginPage() {
     inputRef.current?.focus();
   }, [step]);
 
-
   useEffect(() => {
     const run = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle();
+      const res = await fetch("/api/profile", { cache: "no-store" });
+      const json = await res.json().catch(() => null);
 
-      if (profile?.role === "ADMIN") {
+      if (res.ok && json?.user?.role === "ADMIN") {
         router.replace("/admin");
         return;
       }
+
       await supabase.auth.signOut();
     };
     void run();
@@ -79,22 +74,10 @@ export default function AdminLoginPage() {
     if (step === "email") {
       if (!value) return;
       append(`email: ${value}`);
-
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("id, role")
-        .eq("email", value)
-        .maybeSingle();
-
-      if (error || !profile) {
-        fail([">> ACCOUNT NOT FOUND"]);
-        return;
-      }
-
       setEmail(value);
       setInputValue("");
       setStep("password");
-      append(">> ACCOUNT FOUND", ">> ENTER PASSWORD");
+      append(">> passwd:");
       return;
     }
 
@@ -114,29 +97,25 @@ export default function AdminLoginPage() {
           return;
         }
 
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", data.user.id)
-          .maybeSingle();
+        const profileRes = await fetch("/api/profile", { cache: "no-store" });
+        const profileJson = await profileRes.json().catch(() => null);
 
-        if (profileError || profile?.role !== "ADMIN") {
+        if (!profileRes.ok || profileJson?.user?.role !== "ADMIN") {
           await supabase.auth.signOut();
-          fail([">> ACCESS DENIED", ">> INSUFFICIENT PERMISSIONS"]);
+          fail([">> TRYING TO HACK huh?", ">> Go F*** yourself this is restricted for admins."]);
           return;
         }
 
         append(
-          ">> ACCESS GRANTED",
-          ">> INITIALIZING ADMIN SHELL",
-          ">> REDIRECTING TO ADMIN PANEL..."
+          ">> GOTCHA...",
+          ">> REDIRECTING..."
         );
 
         window.setTimeout(() => {
           router.replace("/admin");
         }, 900);
       } catch {
-        fail([">> CRITICAL TERMINAL ERROR"]);
+        fail([">> YOU HAVE BROKE THE SYSTEM"]);
       }
     }
   };
@@ -153,9 +132,7 @@ export default function AdminLoginPage() {
 
       <div className="absolute inset-0 bg-black/20" />
 
-
-        <div className="relative z-10 w-full max-w-lg aspect-[14/10] rounded-2xl border border-black/50 bg-black/50 p-6 shadow-[0_0_40px_rgba(0,0,0,0.8)] flex flex-col">
-
+      <div className="relative z-10 w-full max-w-lg aspect-[14/10] rounded-2xl border border-black/50 bg-black/50 p-6 shadow-[0_0_40px_rgba(0,0,0,0.8)] flex flex-col">
         <div className="flex-1 space-y-2 overflow-y-auto pr-2 font-mono text-sm leading-relaxed">
           {lines.map((line, idx) => {
             let colorClass = "text-white caret-white";
