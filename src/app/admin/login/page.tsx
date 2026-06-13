@@ -77,7 +77,7 @@ export default function AdminLoginPage() {
       setEmail(value);
       setInputValue("");
       setStep("password");
-      append(">> passwd:");
+      append("");
       return;
     }
 

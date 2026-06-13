@@ -17,6 +17,7 @@ export default function AdminDashboardPage() {
       <div className="flex justify-between items-center border-b border-neutral-800 pb-4 mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Admin Control Panel</h1>
         <p><a href="/admin/orders">Order Management</a></p>
+        <p><a href="/admin/products">Product Management</a></p>
         <button
           onClick={handleLogout}
           className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm font-medium transition-colors"
