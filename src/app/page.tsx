@@ -81,6 +81,7 @@ export default function Home() {
               src="/assets/banner-img.png"
               alt="Premium Kidswear"
               fill
+              sizes="(max-width: 1280px) 100vw, 1280px"
               className="object-cover object-center scale-105"
               priority
             />

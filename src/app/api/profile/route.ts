@@ -26,6 +26,11 @@ export async function GET() {
       },
       reviews: {
         orderBy: { createdAt: "desc" as const },
+        include: {  
+          product: {
+            select: { name: true, pid: true, slug: true },
+          },
+        },
       },
     };
 
@@ -98,6 +103,11 @@ export async function POST(request: Request) {
         },
         reviews: {
           orderBy: { createdAt: "desc" },
+          include: {
+            product: {
+              select: { name: true, pid: true, slug: true },
+            },
+          },
         },
       },
     });

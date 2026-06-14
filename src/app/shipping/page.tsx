@@ -12,67 +12,57 @@ export default function ShippingPage() {
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold tracking-tight text-[#221f1a] sm:text-4xl font-serif">Shipping & Delivery</h1>
           <div className="mt-4 flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-sm text-[#8c8270]">
-            <p><span className="font-medium text-[#5c5446]">Author:</span> Mom & Son Logistics</p>
+            <p><span className="font-medium text-[#5c5446]">Author:</span> Yash Patel</p>
             <span className="hidden sm:inline text-[#e6ded0]">•</span>
-            <p><span className="font-medium text-[#5c5446]">Last Updated:</span> June 07, 2026</p>
+            <p><span className="font-medium text-[#5c5446]">Last Updated:</span> March, 2026</p>
           </div>
           <div className="mt-6 h-[1px] w-24 bg-[#e6ded0] mx-auto"></div>
         </div>
 
         <div className="prose prose-stone max-w-none space-y-8 text-[15px] leading-relaxed">
           <p>
-            Mom & Son partners with trusted national logistics networks to ensure your items arrive safely, securely, and wrapped in premium care.
+            We work with reliable courier partners to get your order to you safely and on time.
           </p>
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-[#221f1a] font-serif border-b border-[#f1ede4] pb-1">1. Shipping Partners</h2>
             <p>
-              To provide the most optimal tracking service and regional speed, we dispatch our parcels using premium domestic fulfillment networks, primarily including <strong>Delhivery</strong> along with other authorized tier-one express courier networks.
+              We mainly ship through <strong>Delhivery</strong>, along with other trusted courier partners depending on your location.
             </p>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-[#221f1a] font-serif border-b border-[#f1ede4] pb-1">2. Processing & Dispatch Timelines</h2>
+            <h2 className="text-lg font-semibold text-[#221f1a] font-serif border-b border-[#f1ede4] pb-1">2. Processing & Dispatch</h2>
             <ul className="list-disc pl-5 space-y-1">
-              <li><strong>Handling Time:</strong> Orders are verified, securely packed, and assigned to couriers within 1 to 2 business days from the moment of successful payment authorization.</li>
-              <li><strong>Dispatch Alerts:</strong> As soon as your order leaves our hub, an automated notification containing tracking links and courier allocation metrics will be transmitted to your registered email address and phone number.</li>
+              <li><strong>Handling time:</strong> orders are checked, packed, and handed to our courier within 1 to 2 business days of payment being confirmed.</li>
+              <li><strong>Tracking:</strong> once your order ships, we&apos;ll send you a tracking link by email and SMS/WhatsApp so you can follow its progress.</li>
             </ul>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-[#221f1a] font-serif border-b border-[#f1ede4] pb-1">3. Estimated Delivery Times</h2>
-            <p>
-              While deep regional transits vary depending on external logistical load, the standard shipping windows are as follows:
-            </p>
+            <p>Delivery times vary a little by location:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li><strong>Metro Areas:</strong> 3 to 5 business days post-dispatch.</li>
-              <li><strong>Rest of India / Tier-2 & Tier-3 Cities:</strong> 5 to 7 business days post-dispatch.</li>
+              <li><strong>Metro cities:</strong> usually 3 to 5 business days after dispatch.</li>
+              <li><strong>Other cities and towns:</strong> usually 5 to 7 business days after dispatch.</li>
             </ul>
             <p className="text-sm text-[#8c8270] italic">
-              Please note: Delays may occasionally manifest due to national holidays, severe regional weather patterns, or local administrative disruptions.
+              These can shift around public holidays, bad weather, or other things outside anyone&apos;s control.
             </p>
           </section>
 
           <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-[#221f1a] font-serif border-b border-[#f1ede4] pb-1">4. Delivery Failures & Incorrect Address Inputs</h2>
+            <h2 className="text-lg font-semibold text-[#221f1a] font-serif border-b border-[#f1ede4] pb-1">4. Delivery Attempts & Address Issues</h2>
             <p>
-              Customers are solely responsible for ensuring that their pin codes, contact numbers, and complete addresses are input correctly during checkout. Our courier service attempts delivery up to 3 times before returning the product to our warehouse. Redelivery fees may apply if the package is returned due to incorrect or unreachable contact credentials.
-            </p>
-          </section>
-
-          <section className="space-y-3 bg-[#fbf9f4] p-5 border border-[#ece6da] rounded-sm">
-            <h2 className="text-lg font-semibold text-[#221f1a] font-serif border-b border-[#ebdcc3] pb-1">5. Technical Infrastructure Limitations</h2>
-            <p className="text-sm text-[#5c5446]">
-              Tracking codes, webhook callbacks, and route estimations rely directly on external tracking APIs provided by Delhivery or other shipping services. The independent technical developer of this web interface does not regulate courier tracking databases or route update servers. 
-            </p>
-            <p className="text-sm text-[#5c5446]">
-              Any data synchronization lags, broken package status links, or temporary webhook delays are outside the developer&apos;s codebase jurisdiction and will not constitute technical liability.
+              Please make sure your address, pin code and phone number are correct at checkout - we rely on these to get your order to you. Our courier will attempt delivery up to 3 times before sending the package back to us, and a redelivery charge may apply if that happens because of incorrect details.
             </p>
           </section>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-[#f1ede4] text-center flex justify-center gap-6 text-sm text-[#8c8270]">
-          <Link href="/refund" className="hover:text-[#221f1a] underline underline-offset-4 transition-colors">Return Policy</Link>
+        <div className="mt-12 pt-8 border-t border-[#f1ede4] text-center flex flex-wrap justify-center gap-6 text-sm text-[#8c8270]">
+          <Link href="/terms" className="hover:text-[#221f1a] underline underline-offset-4 transition-colors">Terms & Conditions</Link>
+          <Link href="/privacy" className="hover:text-[#221f1a] underline underline-offset-4 transition-colors">Privacy Policy</Link>
+          <Link href="/refund" className="hover:text-[#221f1a] underline underline-offset-4 transition-colors">Return & Refund Policy</Link>
           <Link href="/contact" className="hover:text-[#221f1a] underline underline-offset-4 transition-colors">Contact Us</Link>
         </div>
       </div>

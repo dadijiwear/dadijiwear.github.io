@@ -160,7 +160,10 @@ model Coupon {
   carts             Cart[]
   redemptions       CouponRedemption[]
   orders            Order[]
-
+  
+  eligibilityType   CouponEligibilityType @default(NONE)
+  oncePerUser       Boolean               @default(false)
+  
   @@index([active])
   @@index([code])
 }
@@ -463,6 +466,12 @@ enum CartStatus {
 enum CouponType {
   PERCENTAGE
   FIXED
+}
+
+enum CouponEligibilityType {
+  NONE
+  FIRST_ORDER
+  KIDS_AGE
 }
 
 enum ReviewStatus {

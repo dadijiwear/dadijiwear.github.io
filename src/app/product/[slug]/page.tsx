@@ -34,6 +34,12 @@ export default function ProductDetailPage() {
   const [sizeError, setSizeError] = useState(false);
   const [cartMessage, setCartMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  const [reviewEligibility, setReviewEligibility] = useState<{ eligible: boolean; review: any } | null>(null);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, title: "", comment: "" });
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewSuccess, setReviewSuccess] = useState("");
+
   useEffect(() => {
     const loadProduct = async () => {
       try {
@@ -52,6 +58,31 @@ export default function ProductDetailPage() {
 
     loadProduct();
   }, [slug]);
+  
+  useEffect(() => {
+    if (!product?.id) return;
+
+    const loadEligibility = async () => {
+      try {
+        const res = await fetch(`/api/reviews?productId=${product.id}`);
+        const data = await res.json();
+        setReviewEligibility(data);
+
+        if (data.review) {
+          setReviewForm({
+            rating: data.review.rating,
+            title: data.review.title || "",
+            comment: data.review.comment,
+          });
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadEligibility();
+  }, [product?.id]);
+
 
   if (loading) {
     return (
@@ -174,6 +205,67 @@ export default function ProductDetailPage() {
       return sizeMatch && colorMatch;
     })
     .reduce((acc: number, v: any) => acc + (v.stock || 0), 0) || 0;
+  };
+  {/*
+    * Avoid rendering more hooks than previous renders, the below submitReview itsef is a plain function not a hook.
+  useEffect(() => {
+    if (!product?.id) return;
+
+    const loadEligibility = async () => {
+      try {
+        const res = await fetch(`/api/reviews?productId=${product.id}`);
+        const data = await res.json();
+        setReviewEligibility(data);
+
+        if (data.review) {
+          setReviewForm({
+            rating: data.review.rating,
+            title: data.review.title || "",
+            comment: data.review.comment,
+          });
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadEligibility();
+  }, [product?.id]);
+  */}
+  const submitReview = async () => {
+    setReviewError("");
+    setReviewSuccess("");
+
+    if (!reviewForm.comment.trim()) {
+      setReviewError("Please write a few words about the product");
+      return;
+    }
+
+    setReviewSubmitting(true);
+
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: product.id,
+          rating: reviewForm.rating,
+          title: reviewForm.title,
+          comment: reviewForm.comment,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data?.error || "Failed to submit review");
+
+      setReviewEligibility((prev) => (prev ? { ...prev, review: data.review } : prev));
+      setReviewSuccess("Thanks! Your review will show up soon.");
+    } catch (err: any) {
+      setReviewError(err?.message || "Failed to submit review");
+    } finally {
+      setReviewSubmitting(false);
+    }
   };
 
   const currentSelectionStock = selectedSize
@@ -528,7 +620,7 @@ export default function ProductDetailPage() {
               <div className="flex justify-between">
                 <span className="text-muted-custom">Delivery</span>
                 <span className="font-medium text-foreground">
-                  3–5 Business Days
+                  5-7 Business Days
                 </span>
               </div>
 
@@ -542,20 +634,122 @@ export default function ProductDetailPage() {
               <div className="flex justify-between">
                 <span className="text-muted-custom">Returns</span>
                 <span className="font-medium text-foreground">
-                  7-Day Easy Returns
+                  5 Days Easy Returns
                 </span>
               </div>
 
               <div className="flex justify-between">
-                <span className="text-muted-custom">Cash on Delivery</span>
+                <span className="text-muted-custom">UPI and Cash on Delivery</span>
                 <span className="font-medium text-foreground">
                   Available
                 </span>
+            </div> 
+        </div>
+      </div>
+    </div>
+      
+    <div className="bg-card rounded-3xl shadow-sm border border-border-custom overflow-hidden mt-6 p-6 md:p-8">
+      <h2 className="text-xl font-serif text-foreground mb-6">
+        Customer Reviews
+      </h2>
+
+      {reviewEligibility?.eligible && (
+        <div className="mb-8 p-5 rounded-2xl border border-border-custom bg-muted-custom/5">
+          <h3 className="font-semibold text-foreground mb-3">
+            {reviewEligibility.review ? "Edit Your Review" : "Write a Review"}
+          </h3>
+
+          {reviewEligibility.review && (
+            <p className="text-xs text-muted-custom mb-3">
+              Status:{" "}
+              <span className="font-semibold">
+                {reviewEligibility.review.status === "PENDING" && "Processing..."}
+                {reviewEligibility.review.status === "APPROVED" && "Published"}
+                {reviewEligibility.review.status === "REJECTED" && "Error displaying review."}
+              </span>
+            </p>
+          )}
+
+          <div className="flex items-center gap-1 mb-3">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button key={star} type="button" onClick={() => setReviewForm((f) => ({ ...f, rating: star }))}>
+                <Star
+                  size={22}
+                  className={star <= reviewForm.rating ? "fill-dadi-gold text-dadi-gold" : "text-muted-custom/30"}
+                />
+              </button>
+            ))}
+          </div>
+
+          <input
+            type="text"
+            value={reviewForm.title}
+            onChange={(e) => setReviewForm((f) => ({ ...f, title: e.target.value }))}
+            placeholder="Title (optional)"
+            className="w-full mb-2 px-3 py-2 rounded-lg border border-border-custom bg-card text-sm text-foreground"
+          />
+
+          <textarea
+            value={reviewForm.comment}
+            onChange={(e) => setReviewForm((f) => ({ ...f, comment: e.target.value }))}
+            placeholder="Share your experience with this product"
+            rows={3}
+            className="w-full mb-3 px-3 py-2 rounded-lg border border-border-custom bg-card text-sm text-foreground"
+          />
+
+          {reviewError && <p className="text-red-500 text-xs mb-2">{reviewError}</p>}
+          {reviewSuccess && <p className="text-dadi-green dark:text-dadi-gold text-xs mb-2">{reviewSuccess}</p>}
+
+          <Button onClick={submitReview} disabled={reviewSubmitting} variant="primary" className="rounded-xl">
+            {reviewSubmitting ? "Submitting..." : reviewEligibility.review ? "Update Review" : "Submit Review"}
+          </Button>
+        </div>
+      )}
+
+      {product.reviews?.length > 0 ? (
+        <div className="space-y-5">
+          {product.reviews.map((review: any) => (
+            <div key={review.id} className="border-b border-border-custom last:border-b-0 pb-5 last:pb-0">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-0.5">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={14}
+                      className={star <= review.rating ? "fill-dadi-gold text-dadi-gold" : "text-muted-custom/30"}
+                    />
+                  ))}
+                </div>
+
+                {review.verifiedPurchase && (
+                  <span className="text-[10px] font-semibold text-dadi-green bg-dadi-green/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    Verified Purchase
+                  </span>
+                )}
               </div>
+
+              {review.title && (
+                <p className="font-semibold text-foreground text-sm mb-1">{review.title}</p>
+              )}
+
+              <p className="text-sm text-muted-foreground leading-relaxed mb-1">{review.comment}</p>
+
+              <p className="text-xs text-muted-custom">
+                {review.user?.name || "Customer"} •{" "}
+                {new Date(review.createdAt).toLocaleDateString("en-IN", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </p>
             </div>
-          </div> 
-        </div> 
-      </div> 
-    </div> 
-  );
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-custom">No reviews yet. Be the first to share your experience!</p>
+      )}
+    </div>
+  </div> 
+</div> 
+);
 }

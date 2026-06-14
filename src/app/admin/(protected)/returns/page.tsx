@@ -242,13 +242,12 @@ export default function AdminReturnsPage() {
 
       <h1>Return Requests</h1>
       <p>
-        <a href="/admin">Back to Dashboard</a>
-        {"  ||  "}
-        <a href="/admin/orders">Order Management</a>
-        {"  ||  "}
-        <a href="/admin/products">Products</a>
-        {"  ||  "}
-      </p>
+        <a href="/admin">Back to Dashboard</a>{"  ||  "}
+        <a href="/admin/orders">Order Management</a> {"  ||  "}
+        <a href="/admin/products">Products</a>{"  ||  "}
+        < a href="/admin/reviews">Reviews</a> {" ||  "}
+        <a href="/admin/coupons">Coupons</a>{" ||  "}
+        </p>
       <hr />
 
       <div style={{ margin: "10px 0" }}>

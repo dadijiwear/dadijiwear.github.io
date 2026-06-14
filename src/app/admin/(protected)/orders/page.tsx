@@ -189,7 +189,13 @@ export default function AdminOrdersPage() {
       `}</style>
 
       <h1>Order Management</h1>
-      <p><a href="/admin">Back to Dashboard</a> {" || "} <a href="/admin/returns">Returns</a> {" || "} <a href="/admin/products">Products</a></p>
+      <p>
+        <a href="/admin">Back to Dashboard</a> {" || "} 
+        <a href="/admin/returns">Returns</a> {" || "} 
+        <a href="/admin/products">Products</a> {" ||  "}
+        <a href="/admin/reviews">Reviews</a> 
+        <a href="/admin/coupons">Coupons</a>{" ||  "}
+      </p>
       <hr />
 
       <div style={{ margin: "10px 0" }}>

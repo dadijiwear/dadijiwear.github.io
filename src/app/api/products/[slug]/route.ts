@@ -17,7 +17,15 @@ export async function GET(
           },
         },
         variants: true,
-        reviews: true,
+        reviews: {
+          where: { status: "APPROVED" },
+          orderBy: { createdAt: "desc" },
+          include: {
+            user: {
+              select: {name: true },
+            },
+          },
+        },
       },
     });
 

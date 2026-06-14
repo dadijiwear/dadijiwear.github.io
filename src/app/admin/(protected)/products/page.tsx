@@ -461,16 +461,79 @@ export default function AdminProductsPage() {
         .raw-admin { max-width: 1100px; margin: 0 auto; padding: 20px; background: #fff; color: #000; }
         .raw-admin table { border-collapse: collapse; width: 100%; margin-bottom: 10px; }
         .raw-admin th, .raw-admin td { border: 1px solid #000; padding: 6px 10px; text-align: left; vertical-align: top; }
+        .raw-admin input,
+        .raw-admin select,
+        .raw-admin textarea {
+          padding: 4px 6px;
+          margin: 2px 0;
+          font-size: 13px;
+          border: 1px solid #999;
+          border-radius: 3px;
+          box-sizing: border-box;
+        }
+        .raw-admin input[type="checkbox"] {
+          width: auto;
+          margin: 0;
+        }
+        .raw-admin input[type="number"] {
+          width: 80px;
+        }
+        .raw-admin input[type="text"] {
+          min-width: 100px;
+        }
+        .raw-admin input[type="datetime-local"] {
+          min-width: 190px;
+        }
+        .raw-admin button {
+          padding: 4px 10px;
+          cursor: pointer;
+        }
+        .raw-admin label {
+          display: inline-block;
+          margin: 4px 0;
+        }
+        .raw-admin .field {
+          display: inline-block;
+          vertical-align: top;
+          margin: 0 16px 14px 0;
+        }
+        .raw-admin .field label {
+          display: block;
+          font-weight: bold;
+          margin-bottom: 4px;
+          font-size: 12px;
+        }
+        .raw-admin .field-checkbox {
+          display: inline-block;
+          vertical-align: top;
+          margin: 0 16px 14px 0;
+          padding-top: 20px;
+        }
+        .raw-admin .field-checkbox label {
+          font-weight: bold;
+          font-size: 12px;
+          margin-left: 4px;
+          vertical-align: middle;
+        }
+        .raw-admin .field-checkbox input {
+          vertical-align: middle;
+          margin: 0;
+        }
+        .raw-admin .dismiss-btn {
+          margin-left: 8px;
+          font-size: 11px;
+          padding: 1px 8px;
+        }
       `}</style>
 
       <h1>Product Management</h1>
       <p>
-        <a href="/admin">Back to Dashboard</a>
-        {"  ||  "}
-        <a href="/admin/orders">Order Management</a>
-        {"  ||  "}
-        <a href="/admin/returns">Returns</a>
-      </p>
+        <a href="/admin">Back to Dashboard</a> {"  ||  "}
+        <a href="/admin/orders">Order Management</a>{"  ||  "}
+        <a href="/admin/returns">Returns</a> {" ||  "}
+        <a href="/admin/reviews">Reviews</a>{" || "}
+        <a href="/admin/coupons">Coupons</a>{" ||  "}
+        </p>
       <hr />
 
       <div style={{ margin: "10px 0" }}>
@@ -519,33 +582,67 @@ export default function AdminProductsPage() {
       <hr />
 
       <h2>Create New Product</h2>
-      {newProductError && <p style={{ color: "red" }}>{newProductError}</p>}
-      {newProductSuccess && <p style={{ color: "green" }}>{newProductSuccess}</p>}
+      {newProductError && (
+        <p style={{ color: "red" }}>
+          {newProductError}{" "}
+          <button className="dismiss-btn" onClick={() => setNewProductError("")}>OK</button>
+        </p>
+      )}
+      {newProductSuccess && (
+        <p style={{ color: "green" }}>
+          {newProductSuccess}{" "}
+          <button className="dismiss-btn" onClick={() => setNewProductSuccess("")}>OK</button>
+        </p>
+      )}
 
-      <p>
-        <label>PID: <input type="text" value={newProduct.pid} onChange={(e) => setNewProduct((p) => ({ ...p, pid: e.target.value }))} placeholder="PID0004" size={10} /></label>
-        {"   "}
-        <label>Slug: <input type="text" value={newProduct.slug} onChange={(e) => setNewProduct((p) => ({ ...p, slug: e.target.value }))} placeholder="my-new-product" size={25} /></label>
-        {"   "}
-        <label>Name: <input type="text" value={newProduct.name} onChange={(e) => setNewProduct((p) => ({ ...p, name: e.target.value }))} size={30} /></label>
-      </p>
-      <p>
-        <label>Category: <input type="text" value={newProduct.category} onChange={(e) => setNewProduct((p) => ({ ...p, category: e.target.value }))} size={15} /></label>
-        {"   "}
-        <label>Collection: <input type="text" value={newProduct.collection} onChange={(e) => setNewProduct((p) => ({ ...p, collection: e.target.value }))} size={15} /></label>
-        {"   "}
-        <label>Season: <input type="text" value={newProduct.season} onChange={(e) => setNewProduct((p) => ({ ...p, season: e.target.value }))} size={10} /></label>
-      </p>
-      <p>
-        <label>MRP: <input type="number" value={newProduct.mrp} onChange={(e) => setNewProduct((p) => ({ ...p, mrp: e.target.value }))} size={8} /></label>
-        {"   "}
-        <label>Price: <input type="number" value={newProduct.price} onChange={(e) => setNewProduct((p) => ({ ...p, price: e.target.value }))} size={8} /></label>
-        {"   "}
-        <label>Discount %: <input type="number" value={newProduct.discountPercent} onChange={(e) => setNewProduct((p) => ({ ...p, discountPercent: e.target.value }))} size={5} /></label>
-      </p>
-      <p>
-        <label>Description: <textarea value={newProduct.description} onChange={(e) => setNewProduct((p) => ({ ...p, description: e.target.value }))} rows={2} cols={60} /></label>
-      </p>
+      <div>
+        <div className="field">
+          <label>PID</label>
+          <input type="text" value={newProduct.pid} onChange={(e) => setNewProduct((p) => ({ ...p, pid: e.target.value }))} placeholder="PID0004" size={10} />
+        </div>
+        <div className="field">
+          <label>Slug</label>
+          <input type="text" value={newProduct.slug} onChange={(e) => setNewProduct((p) => ({ ...p, slug: e.target.value }))} placeholder="my-new-product" size={25} />
+        </div>
+        <div className="field">
+          <label>Name</label>
+          <input type="text" value={newProduct.name} onChange={(e) => setNewProduct((p) => ({ ...p, name: e.target.value }))} size={30} />
+        </div>
+      </div>
+      <div>
+        <div className="field">
+          <label>Category</label>
+          <input type="text" value={newProduct.category} onChange={(e) => setNewProduct((p) => ({ ...p, category: e.target.value }))} size={15} />
+        </div>
+        <div className="field">
+          <label>Collection</label>
+          <input type="text" value={newProduct.collection} onChange={(e) => setNewProduct((p) => ({ ...p, collection: e.target.value }))} size={15} />
+        </div>
+        <div className="field">
+          <label>Season</label>
+          <input type="text" value={newProduct.season} onChange={(e) => setNewProduct((p) => ({ ...p, season: e.target.value }))} size={10} />
+        </div>
+      </div>
+      <div>
+        <div className="field">
+          <label>MRP</label>
+          <input type="number" value={newProduct.mrp} onChange={(e) => setNewProduct((p) => ({ ...p, mrp: e.target.value }))} size={8} />
+        </div>
+        <div className="field">
+          <label>Price</label>
+          <input type="number" value={newProduct.price} onChange={(e) => setNewProduct((p) => ({ ...p, price: e.target.value }))} size={8} />
+        </div>
+        <div className="field">
+          <label>Discount %</label>
+          <input type="number" value={newProduct.discountPercent} onChange={(e) => setNewProduct((p) => ({ ...p, discountPercent: e.target.value }))} size={5} />
+        </div>
+      </div>
+      <div>
+        <div className="field" style={{ display: "block" }}>
+          <label>Description</label>
+          <textarea value={newProduct.description} onChange={(e) => setNewProduct((p) => ({ ...p, description: e.target.value }))} rows={2} cols={60} />
+        </div>
+      </div>
       <p>
         <button disabled={newProductLoading} onClick={createProduct}>Create Product</button>
       </p>

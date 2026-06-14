@@ -172,12 +172,11 @@ useEffect(() => {
     [profile, baselineProfile]
   );
 
-  // Time-based Greeting Filter Logic
   const timeBasedGreeting = useMemo(() => {
     const currentHour = new Date().getHours();
     if (currentHour >= 4 && currentHour < 12) return "Good morning";
     if (currentHour >= 12 && currentHour < 17) return "Good afternoon";
-    if (currentHour >= 17 && currentHour < 22) return "Good evening";
+    if (currentHour >= 17 && currentHour < 20) return "Good evening";
     return "Good night";
   }, []);
 
@@ -256,8 +255,8 @@ useEffect(() => {
     }));
 
     (async () => {
-      let resolvedIp = "Connection Unverified";
-      let resolvedLocation = "Routing Restrained";
+      let resolvedIp = "Error Fetching.";
+      let resolvedLocation = "Error Fetching.";
 
       try {
         const res = await fetch("https://ipapi.co/json/");
@@ -275,12 +274,12 @@ useEffect(() => {
           const fallbackRes = await fetch("https://api.ipify.org?format=json");
           if (fallbackRes.ok) {
             const fbData = await fallbackRes.json();
-            resolvedIp = fbData.ip || "Connection Unverified";
-            resolvedLocation = "Location Protected";
+            resolvedIp = fbData.ip || "Error Fetching.";
+            resolvedLocation = "Error Fetching.";
           }
         } catch {
-          resolvedIp = "Connection Unverified";
-          resolvedLocation = "Routing Restrained";
+          resolvedIp = "Error Fetching.";
+          resolvedLocation = "Error Fetching.";
         }
       }
 
@@ -329,7 +328,7 @@ useEffect(() => {
     setSaveBusy(true);
 
     if (nextProfile.phone && digitsOnly(nextProfile.phone).length !== 10) {
-      setError("Please enter a valid 10-digit mobile number.");
+      setError("Please enter a valid 10 digit mobile number.");
       setSaveBusy(false);
       return false;
     }
@@ -412,7 +411,7 @@ useEffect(() => {
     setMessage("");
 
     if (!acceptPolicies) {
-      setError("You must agree to the terms, conditions, and cancellation policies to create an account.");
+      setError("You must agree to the terms & conditions, privacy, shipping, refund, return and cancellation policies to create an account.");
       return;
     }
 
@@ -448,7 +447,7 @@ useEffect(() => {
 
     setSignupStep(2);
     setResendSeconds(45);
-    setMessage("An 8-digit verification code was sent to your inbox.");
+    setMessage("An 8 digit OTP was sent to your inbox/spam.");
   };
 
   const handleResendOTP = async () => {
@@ -502,12 +501,12 @@ useEffect(() => {
     setMessage("");
 
     if (!strongPasswordOk) {
-      setError("Password strength validation failed. Complete all security criteria.");
+      setError("Weak Password! Match all constraints.");
       return;
     }
 
     if (!passwordsMatch) {
-      setError("Password parameters do not match.");
+      setError("Password constraints doesn't match");
       return;
     }
 
@@ -517,7 +516,7 @@ useEffect(() => {
     }
 
     if (digitsOnly(profile.phone).length !== 10) {
-      setError("Please input a standard 10-digit mobile phone number.");
+      setError("Typo: FYI mobile number is of 10 digits. Please enter your real number.");
       return;
     }
 
@@ -528,7 +527,7 @@ useEffect(() => {
       if (checkPhoneRes.ok) {
         const checkPhoneData = await checkPhoneRes.json();
         if (checkPhoneData.exists) {
-          setError("This mobile number is already used on another account.");
+          setError("Contact number already in use. Add unique mobile no.");
           setAuthBusy(false);
           return;
         }
@@ -696,7 +695,7 @@ useEffect(() => {
     <div className="min-h-screen bg-[#fcfbf7] font-sans antialiased text-[#1e2522] px-4 py-12">
       <div className="mx-auto w-full max-w-7xl">
         
-        {/* Alerts & Notifications Block */}
+        {/* Alerts and notification block */}
         {error && (
           <div className="mx-auto mb-6 flex items-center justify-between w-full max-w-xl rounded-xl border border-red-200 bg-red-50/60 px-4 py-3.5 text-sm text-red-800 shadow-sm backdrop-blur-sm animate-in fade-in duration-200">
             <div className="flex items-center gap-2.5">
@@ -1060,7 +1059,7 @@ useEffect(() => {
                     </div>
                     {confirmPassword.length > 0 && (
                       <p className={`text-[11px] font-semibold ${passwordsMatch ? "text-emerald-800" : "text-red-600"}`}>
-                        {passwordsMatch ? "Passwords match verified" : "Passwords do not match"}
+                        {passwordsMatch ? "Password matched" : "Password doesn't match"}
                       </p>
                     )}
                   </div>
@@ -1186,11 +1185,11 @@ useEffect(() => {
           </div>
         )}
 
-        {/* Premium Dashboard Workspace */}
+        {/* DASHBOARD  */}
         {view === "DASHBOARD" && (
           <div className="space-y-6">
             
-            {/* Top Greeting Frame */}
+            {/* time based greeting */}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-gray-200/80 pb-4">
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-gray-900">
@@ -1205,13 +1204,13 @@ useEffect(() => {
               </button>
             </div>
 
-            {/* Layout Split System */}
+            {/* Split layouts */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
               
-              {/* Sidebar: Identity & Compact Update Password Cards stacked together */}
+              {/* This sidebar containts profiled details and password*/}
               <aside className="space-y-5">
                 
-                {/* Profile Meta Details */}
+                {/* profile details: name and email */}
                 <div className="bg-white rounded-2xl border border-emerald-900/5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] p-5">
                   <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#163300] text-sm font-bold text-white shrink-0">
@@ -1226,7 +1225,7 @@ useEffect(() => {
                   </div>
 
                   <div className="space-y-4">
-                    {/* Live Session Connection Verification Indicator */}
+                    {/* pulse to indicate active status */}
                     <div className="flex items-start gap-2.5 bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-100/50">
                       <span className="mt-1 relative flex h-2 w-2">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -1238,7 +1237,7 @@ useEffect(() => {
                       </div>
                     </div>
 
-                    {/* Infrastructure Audit Metadata metrics */}
+                    {/* telemetry */}
                     <div className="border-t border-gray-100 pt-3.5 space-y-2.5 text-xs">
                       <div className="flex items-center gap-2 text-gray-600">
                         <Laptop size={14} className="text-gray-400 shrink-0" />
@@ -1256,7 +1255,7 @@ useEffect(() => {
                   </div>
                 </div>
 
-                {/* Update Password: Small compact card placed out of the main panel layout right below telemetry */}
+                {/* password section */}
                 <div className="bg-white rounded-2xl border border-emerald-900/5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] p-5">
                   <div className="flex items-center gap-2 border-b border-gray-100 pb-2 mb-3">
                     <KeyRound className="text-emerald-800" size={15} />
@@ -1315,7 +1314,7 @@ useEffect(() => {
                         </div>
                         {dbConfirmPassword.length > 0 && (
                           <p className={`text-[9px] font-medium pt-0.5 ${dbPasswordsIdentical ? "text-emerald-800" : "text-red-600"}`}>
-                            {dbPasswordsIdentical ? "Passwords match verified" : "Passwords do not match"}
+                            {dbPasswordsIdentical ? "Password matched" : "Password doesn't match"}
                           </p>
                         )}
                       </div>
@@ -1335,13 +1334,12 @@ useEffect(() => {
 
               </aside>
 
-              {/* Main Column Workspaces */}
+              {/* main column */}
               <div className="space-y-6">
                 
-                {/* Row 1: Profile Properties & Shipping Settings */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   
-                  {/* Your Profile Card */}
+                  {/* profile card  */}
                   <div className="bg-white rounded-2xl border border-emerald-900/5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] p-6 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between border-b border-gray-100 pb-2.5 mb-4">
@@ -1435,7 +1433,7 @@ useEffect(() => {
                     )}
                   </div>
 
-                  {/* Address Book Card */}
+                  {/* Adddress Book card*/}
                   <div className="bg-white rounded-2xl border border-emerald-900/5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] p-6 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between border-b border-gray-100 pb-2.5 mb-4">
@@ -1488,14 +1486,14 @@ useEffect(() => {
                   </div>
                 </div>
 
-                {/* Row 2: Order Activity Logs & Feedback Ledger */}
+                {/* order history and reviews section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   
-                  {/* Order History Card */}
+                  {/* order history card */}
                   <div className="bg-white rounded-2xl border border-emerald-900/5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] p-5">
                     <div className="flex items-center gap-2 border-b border-gray-100 pb-2 mb-3">
                       <Package className="text-emerald-800" size={16} />
-                      <h3 className="text-base font-bold text-gray-900 uppercase tracking-wide">Order History</h3>
+                      <h3 className="text-base font-bold text-gray-900 tracking-wide">Order History</h3>
                     </div>
 
                     {orders.length === 0 ? (
@@ -1545,11 +1543,11 @@ useEffect(() => {
                     )}
                   </div>
 
-                  {/* Reviews Card */}
+                  {/* reviews card */}
                   <div className="bg-white rounded-2xl border border-emerald-900/5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] p-5">
                     <div className="flex items-center gap-2 border-b border-gray-100 pb-2 mb-3">
                       <Star className="text-emerald-800" size={16} />
-                      <h3 className="text-base font-bold text-gray-900 uppercase tracking-wide">Reviews</h3>
+                      <h3 className="text-base font-bold text-gray-900  tracking-wide">Reviews</h3>
                     </div>
 
                     {reviews.length === 0 ? (
@@ -1564,6 +1562,9 @@ useEffect(() => {
                               <span className="truncate max-w-[140px]">{review.title || "Product Review"}</span>
                               <span className="text-gray-400 font-normal text-xs">{new Date(review.createdAt ?? Date.now()).toLocaleDateString()}</span>
                             </div>
+                            {review.product?.name && (
+                              <p className="text-[11px] text-emerald-700 font-semibold mt-0.5 truncate">{review.product.name}</p>
+                            )}
                             <p className="text-gray-500 mt-1 line-clamp-2 leading-relaxed text-xs">{review.comment ?? review.text ?? ""}</p>
                           </div>
                         ))}

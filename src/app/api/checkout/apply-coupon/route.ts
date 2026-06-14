@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Prisma, CouponType } from "@prisma/client";
+import { Prisma, CouponType, CouponEligibilityType, OrderStatus } from "@prisma/client";
 import { createClient } from "@/utils/supabase/server";
 import { prisma } from "@/lib/prisma";
 
@@ -19,11 +19,26 @@ function parseKidsAgeInMonths(kidsAge: string | null | undefined): number | null
   return isYears ? value * 12 : value;
 }
 
-function isEligibleForCoupon(code: string, kidsAgeMonths: number | null): boolean {
-  if (code.toUpperCase() === "NEWBORN06") {
-    return kidsAgeMonths !== null && kidsAgeMonths <= 6;
+async function isEligibleForCoupon(
+  coupon: { eligibilityType: CouponEligibilityType },
+  userId: string,
+  kidsAgeMonths: number | null
+): Promise<boolean> {
+  switch (coupon.eligibilityType) {
+    case CouponEligibilityType.KIDS_AGE:
+      return kidsAgeMonths !== null && kidsAgeMonths <= 6;
+    case CouponEligibilityType.FIRST_ORDER: {
+      const priorOrder = await prisma.order.findFirst({
+        where: {
+          userId,
+          status: { notIn: [OrderStatus.CANCELLED, OrderStatus.FAILED] },
+        },
+      });
+      return !priorOrder;
+    }
+    default:
+      return true;
   }
-  return true;
 }
 
 async function getAuthedUser() {
@@ -80,9 +95,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "This coupon has reached its usage limit" }, { status: 400 });
     }
 
+    if (coupon.oncePerUser) {
+      const priorRedemption = await prisma.couponRedemption.findFirst({
+        where: { couponId: coupon.id, userId: user.id },
+      });
+
+      if (priorRedemption) {
+        return NextResponse.json({ error: "You have already used this coupon" }, { status: 403 });
+      }
+    }
+
     const kidsAgeMonths = parseKidsAgeInMonths(dbUser?.kidsAge);
 
-    if (!isEligibleForCoupon(coupon.code, kidsAgeMonths)) {
+    if (!(await isEligibleForCoupon(coupon, user.id, kidsAgeMonths))) {
       return NextResponse.json({ error: "You are not eligible for this coupon" }, { status: 403 });
     }
 
